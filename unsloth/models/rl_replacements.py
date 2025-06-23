@@ -20,6 +20,7 @@ __all__ = [
     "RL_METRICS_CHANGES",
 ]
 
+import os
 import re
 import torch
 import inspect
@@ -98,6 +99,8 @@ def sft_trainer_prepare_dataset(function_name, function):
     pass
 
     check_text = \
+    "if 'skip_prepare_dataset' in locals() and skip_prepare_dataset:\n"\
+    "    return dataset\n"\
     "if 'tokenizer'          not in locals(): tokenizer = processing_class\n"\
     "if 'formatting_func'    not in locals(): raise RuntimeError('Unsloth: Please file a bug report - `formatting_func` does not exist!')\n"\
     "if 'dataset_text_field' not in locals() and 'args' in locals(): dataset_text_field = args.dataset_text_field\n"\
@@ -168,24 +171,64 @@ RL_FUNCTIONS["sft_trainer"].append(sft_trainer_compute_loss)
 def grpo_trainer__prepare_inputs(function_name, function):
     if  function_name != "_prepare_inputs": return function
 
-    if "with torch.inference_mode()" not in function: return function
+    import re
+    # Try to find the function signature and insert after it
+    # This matches the function signature and any decorators/comments, then finds the first non-empty line after the signature
+    pattern = r"(def _prepare_inputs\s*\([^\)]*\)\s*(->\s*[^:]+)?\s*:\s*\n)"
+    match = re.search(pattern, function)
+    if match:
+        sig_end = match.end(1)
+        rest = function[sig_end:]
+        rest = re.sub(r"^[ \t]*self\.llm\.wake_up\(\)\s*\n", "", rest)
+        rest = re.sub(r"^[ \t]*torch\.cuda\.empty_cache\(\)\s*\n", "", rest)
+        rest = re.sub(r"^[ \t]*free, total = torch.cuda.mem_get_info\(\)\s*\n", "", rest)
+        rest = re.sub(r"^[ \t]*print\(f?\".*cuda.*\"\)\s*\n", "", rest)
+        insert = (
+            "        if hasattr(self, 'llm'):\n"
+            "           if getattr(self.llm.llm_engine.vllm_config.model_config, 'enable_sleep_mode', False):\n"
+            "               self.llm.wake_up()\n"
+        )
+        function = function[:sig_end] + insert +  rest
+    else:
+        pattern2 = r"(def _prepare_inputs\(.*?\):\n(?:[ ]+#[^\n]*\n)+)"
+        match2 = re.search(pattern2, function, flags=re.DOTALL)
+        if match2:
+            header_and_comments = match2.group(1)
+            rest = function[len(header_and_comments):]
+            rest = re.sub(r"^[ \t]*self\.llm\.wake_up\(\)\s*\n", "", rest)
+            rest = re.sub(r"^[ \t]*torch\.cuda\.empty_cache\(\)\s*\n", "", rest)
+            rest = re.sub(r"^[ \t]*free, total = torch.cuda.mem_get_info\(\)\s*\n", "", rest)
+            rest = re.sub(r"^[ \t]*print\(f?\".*cuda.*\"\)\s*\n", "", rest)
+            insert = (
+                "        if (hasattr(self, 'llm'):\n"
+                "           if getattr(self.llm.llm_engine.vllm_config.model_config, 'enable_sleep_mode', False):\n"
+                "               self.llm.wake_up()\n"
+            )
+            function = header_and_comments + insert + rest
 
     # Add mixed precision training
     function = function.replace(
         "with torch.inference_mode():",
-
         "with torch.inference_mode(), "\
         "torch.amp.autocast(device_type = 'cuda', "\
         "dtype = ((torch.float16 if os.environ.get('ACCELERATE_MIXED_PRECISION', 'fp16') == 'fp16' else torch.bfloat16) "\
         "if not torch.is_autocast_enabled('cuda') else nullcontext())"\
         "if os.environ.get('UNSLOTH_FORCE_FLOAT32', '0') == '0' else torch.float16):",
     )
-
-    # Disable attaching a float32 conversion hook which upcasts logits to FP32
     function = function.replace(
         "self.accelerator.unwrap_model(self.model)",
         "self.accelerator.unwrap_model(self.model, keep_fp32_wrapper = False)",
     )
+    sleep_and_cache = (
+        "if hasattr(self, 'llm'):\n"
+        "            if getattr(self.llm.llm_engine.vllm_config.model_config, 'enable_sleep_mode', False):\n"
+        "                       self.llm.sleep(os.environ.get('VLLM_SLEEP_MODE', 1))\n"
+        "        "
+    )
+    if re.search(r"\n\s*return ", function):
+        function = re.sub(r"(\n\s*)return ", f"\\1{sleep_and_cache}return ", function, count=1)
+    else:
+        function = function.rstrip() + "\n    " + sleep_and_cache
     return function
 pass
 RL_FUNCTIONS["grpo_trainer"].append(grpo_trainer__prepare_inputs)
@@ -207,24 +250,36 @@ RL_FUNCTIONS["grpo_trainer"].append(grpo_trainer__move_model_to_vllm)
 def grpo_trainer__get_per_token_logps(function_name, function):
     if  function_name != "_get_per_token_logps": return function
 
-    def _get_per_token_logps(self, model, input_ids, attention_mask, logits_to_keep):
-        if os.environ.get('UNSLOTH_USE_NEW_MODEL', '0') == '0':
+    def _get_per_token_logps(self, model, input_ids, attention_mask, logits_to_keep, calc_logprob_flag = None):
+        if os.environ.get('UNSLOTH_USE_NEW_MODEL', '0') == '0' and not calc_logprob_flag:
             return None # Unsloth efficient GRPO
         # Otherwise, calculate normally:
         if not hasattr(self, '_autocast_dtype'):
             self._autocast_dtype = torch.float16 if os.environ.get('ACCELERATE_MIXED_PRECISION', 'fp16') == 'fp16' else torch.bfloat16
             if os.environ.get('UNSLOTH_FORCE_FLOAT32', '0') == '1': self._autocast_dtype = torch.float16
+
+        os.environ["UNSLOTH_RETURN_HIDDEN_STATES"] = "1"
         with torch.amp.autocast(device_type = 'cuda', dtype = self._autocast_dtype):
             # We add 1 to `logits_to_keep` because the last logits of the sequence is later excluded
-            logits = model(input_ids=input_ids, attention_mask=attention_mask, logits_to_keep=logits_to_keep + 1).logits
-            logits = logits[:, :-1, :]  # (B, L-1, V), exclude the last logit: it corresponds to the next token pred
-
-            input_ids = input_ids[:, -logits_to_keep:]
+            hidden_states = model(input_ids=input_ids, attention_mask=attention_mask, logits_to_keep=logits_to_keep + 1).logits
+            #logits = logits[:, :-1, :]  # (B, L-1, V), exclude the last logit: it corresponds to the next token pred
+            return hidden_states
+            # input_ids = input_ids[:, -logits_to_keep:]
             # For transformers<=4.48, logits_to_keep argument isn't supported, so here we drop logits ourselves.
             # See https://github.com/huggingface/trl/issues/2770
-            logits = logits[:, -logits_to_keep:]
-            return logits
-            # return selective_log_softmax(logits, input_ids)  #  compute logprobs for the input tokens
+            # logits = logits[:, -logits_to_keep:]
+            # return logits
+            # See https://huggingface.co/blog/the_n_implementation_details_of_rlhf_with_ppo#policy-training-implementation-details
+            # logits = logits / self.temperature
+            # logps = selective_log_softmax(logits, input_ids)
+
+            # row_indices, col_indices = torch.where(logps < -20)
+
+            # # Method 1: Check if tensors have elements
+            # if len(row_indices) > 0 and len(col_indices) > 0:
+            #     breakpoint()  # Breakpoint triggered here
+            #     print("Found high values!")
+            # return  logps #  compute logprobs for the input tokens
         pass
     pass
 
@@ -260,28 +315,80 @@ def grpo_trainer_compute_loss(function_name, function):
         logits_to_keep = completion_ids.size(1)  # we only need to compute the logits for the completion tokens
         _input_ids = input_ids
         _logits_to_keep = logits_to_keep
-        
+
         per_token_logps = self._get_per_token_logps(model, input_ids, attention_mask, logits_to_keep)
 
         # Compute the KL divergence between the model and the reference model
-        ref_per_token_logps = inputs["ref_per_token_logps"]
+        # _prepare_inputs doesn't return reference log probs anymore. We need to calculate it ourselves.
+        # https://github.com/huggingface/trl/blob/05bc43e960396581e458195b8388efe6b82cae1f/trl/trainer/grpo_trainer.py#L1328
+        if self.beta != 0.0:
+            with torch.inference_mode(), model.disable_adapter():
+                ref_per_token_logps = self._get_per_token_logps(model, input_ids, attention_mask, logits_to_keep)
+        else:
+            ref_per_token_logps = None
         # per_token_kl = torch.exp(ref_per_token_logps - per_token_logps) - (ref_per_token_logps - per_token_logps) - 1
-
         # x - x.detach() allows for preserving gradients from x
         advantages = inputs["advantages"]
         # per_token_loss = torch.exp(per_token_logps - per_token_logps.detach()) * advantages.unsqueeze(1)
         # per_token_loss = -(per_token_loss - self.beta * per_token_kl)
         # loss = ((per_token_loss * completion_mask).sum(dim=1) / completion_mask.sum(dim=1)).mean()
+        if "old_per_token_logps" in inputs.keys():
+            old_hidden_states = inputs["old_per_token_logps"]
+        else:
+            old_hidden_states = None
+
         input_ids = input_ids[:, -logits_to_keep:]
         if per_token_logps is not None:
+
+            if ref_per_token_logps is not None:
+                ref_per_token_logps = ref_per_token_logps[:, :-1, :] # (B, L-1, V), exclude the last logit: it corresponds to the next token pred
+
+            per_token_logps = per_token_logps[:, :-1, :] # (B, L-1, V), exclude the last logit: it corresponds to the next token pred
+            
             loss, completion_length, mean_kl = grpo_compute_loss_slow(
-                ref_per_token_logps, per_token_logps, input_ids, completion_mask, self.beta, advantages,
+                ref_per_token_logps,
+                per_token_logps,
+                old_hidden_states,
+                input_ids,
+                completion_mask,
+                self.beta,
+                advantages,
+                loss_type = self.args.loss_type,
+                epsilon_low = self.epsilon_low,
+                epsilon_high = self.epsilon_high,
+                max_completion_length = self.args.max_completion_length,
+                delta = self.args.delta,
+                temperature = self.args.temperature,
             )
         else:
-            loss, completion_length, mean_kl = grpo_accumulated_loss(
-                self, _input_ids, logits_to_keep, completion_mask, advantages,
-                n_chunks = self.args.unsloth_num_chunks,
-            )
+            if hasattr(self.args, "loss_type"):
+                loss, completion_length, mean_kl = grpo_accumulated_loss(
+                    self,
+                    _input_ids,
+                    logits_to_keep,
+                    completion_mask,
+                    advantages,
+                    old_hidden_states,
+                    n_chunks = self.args.unsloth_num_chunks,
+                    loss_type = self.args.loss_type,
+                    epsilon_low = self.epsilon_low,
+                    epsilon_high = self.epsilon_high,
+                    max_completion_length = self.args.max_completion_length,
+                    delta = self.args.delta,
+                    temperature = self.args.temperature,
+                )
+            else:
+                # to ensure backwards compatibility with trl 0.15.2 and maybe even 0.17
+                loss, completion_length, mean_kl = grpo_accumulated_loss(
+                    self,
+                    _input_ids,
+                    logits_to_keep,
+                    completion_mask,
+                    advantages,
+                    old_hidden_states,
+                    n_chunks = self.args.unsloth_num_chunks,
+                    temperature = self.args.temperature,
+                )
 
         # Log the metrics
         # completion_length = self.accelerator.gather_for_metrics(completion_mask.sum(1)).float().mean().item()
@@ -325,13 +432,27 @@ RL_CONFIG_CHANGES["grpo_trainer"].append(grpo_trainer_fix_batch_size)
 def grpo_trainer_metrics(RLTrainer_source, RLConfig_source):
     if "reward_funcs" not in RLTrainer_source: return ""
 
+    # For new TRL we have /mean and /std
+    use_mean = "rewards/{reward_func_name}/mean" in RLTrainer_source
+    use_std  = "rewards/{reward_func_name}/std"  in RLTrainer_source
+    if not use_mean:
+        use_normal = "rewards/{reward_func_name}" in RLTrainer_source
+    else:
+        use_normal = False
+    pass
+
     log_metrics = \
     "if not isinstance(reward_funcs, list): _reward_funcs = [reward_funcs]\n"\
     "else: _reward_funcs = reward_funcs\n"\
     "for reward_func in _reward_funcs:\n"\
     "    try:\n"\
     "        reward_func_name = reward_func.__name__\n"\
-    "        other_metrics.append(f'rewards/{reward_func_name}')\n"\
+   f"        if {use_mean}:\n"\
+    "            other_metrics.append(f'rewards/{reward_func_name}/mean')\n"\
+   f"        if {use_std}:\n"\
+    "            other_metrics.append(f'rewards/{reward_func_name}/std')\n"\
+   f"        if {use_normal}:\n"\
+    "            other_metrics.append(f'rewards/{reward_func_name}')\n"\
     "    except: pass\n"
     return log_metrics
 pass

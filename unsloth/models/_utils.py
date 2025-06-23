@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "2025.4.1"
+__version__ = "2025.6.5"
 
 __all__ = [
     "SUPPORTS_BFLOAT16",
     "is_bfloat16_supported",
+    "is_vLLM_available",
 
     "prepare_model_for_kbit_training",
     "xformers",
@@ -146,7 +147,7 @@ class HideLoggingMessage(logging.Filter):
     def filter(self, x): return not (self.text in x.getMessage())
 pass
 
-# The speedups for torchdynamo mostly come wih GPU Ampere or higher and which is not detected here.
+# The speedups for torchdynamo mostly come with GPU Ampere or higher and which is not detected here.
 from transformers.training_args import logger as transformers_training_args_logger
 transformers_training_args_logger.addFilter(HideLoggingMessage("The speedups"))
 # torch.distributed process group is initialized, but parallel_mode != ParallelMode.DISTRIBUTED.
@@ -190,9 +191,45 @@ try:
 except:
     pass
 
+# Xet Storage is enabled for this repo, but the 'hf_xet' package is not installed.
+try:
+    from huggingface_hub.file_download import logger as hub_logger
+    hub_logger.addFilter(HideLoggingMessage("hf_xet"))
+    del hub_logger
+except:
+    pass
 
 # Patch get_model_param_count to record correct 4bit / 8bit
 from transformers.trainer_pt_utils import is_deepspeed_zero3_enabled
+
+def extract_approx_params_from_config(config):
+    """
+    Extract approximate parameter count from model config's name_or_path
+    Returns int (param count) or None if not found.
+    """
+    lowercase_b_families = ["gemma"] # gemma uses small 'b' : google/gemma-3-1b-it
+    model_name = getattr(config, "name_or_path", "")
+    import re
+    cleaned = re.sub(r"[-_]?bnb[-_]?4bit|[-_]?4bit|[-_]?8bit|[-_]?bnb", "", model_name, flags=re.IGNORECASE) # replace bnb and xbit
+    match_B = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*B", cleaned) # first prefer searching 'B'
+    if match_B:
+        # most model names would come in this flow
+        billions = float(match_B.group(1))
+        return int(1_000_000_000 * billions)
+    else:
+        if any(fam in cleaned.lower() for fam in lowercase_b_families):
+            match_b = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*b", cleaned)
+            if match_b:
+                billions = float(match_b.group(1))
+                return int(1_000_000_000 * billions)
+        else:
+            match_any = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*[bB]", cleaned)
+            if match_any:
+                billions = float(match_any.group(1))
+                return int(1_000_000_000 * billions)
+    return None
+
+
 def get_model_param_count(model, trainable_only = False):
     """
     Calculate model's total param count. If trainable_only is True then count only those requiring grads
@@ -207,12 +244,9 @@ def get_model_param_count(model, trainable_only = False):
     if (not trainable_only) and \
         hasattr(model, "config") and \
         hasattr(model.config, "quantization_config"):
-
-        billions = re.findall(r"([0-9]{1,})(?:b|B)", model.config.name_or_path)
-        if len(billions) != 0:
-            billions = int(billions[0])
-            s = 1_000_000_000 * billions
-    pass
+        approx = extract_approx_params_from_config(model.config)
+        if approx is not None:
+            s = approx
     return s
 pass
 import transformers.trainer_pt_utils
@@ -243,13 +277,16 @@ pass
 
 from transformers import __version__ as transformers_version
 from transformers import PretrainedConfig
-model_architectures = ["llama", "mistral", "gemma", "gemma2", "qwen2", "granite"]
+model_architectures = ["llama", "mistral", "gemma", "gemma2", "qwen2", "granite", "qwen3", "qwen3_moe"]
 
 for model_name in model_architectures:
     config_filepath = f"transformers.models.{model_name}.configuration_{model_name}"
     model_filepath = f"transformers.models.{model_name}.modeling_{model_name}"
-    config_filename = f"{model_name.title()}Config"
-    exec(f"from {config_filepath} import {config_filename}", globals())
+    config_filename = f"{model_name.title().replace('_','')}Config" # qwen3 arch folder is qwen3_moe but config is Qwen3Config. Need to remove underscore(_) for now
+    try:
+        exec(f"from {config_filepath} import {config_filename}", globals())
+    except:
+        continue
 
     try:
         config = inspect.getsource(eval(config_filename))
@@ -718,24 +755,10 @@ exec(BitsAndBytesConfig__init__, globals())
 
 if torch.cuda.device_count() == 1:
     from accelerate.utils.dataclasses import DistributedType
-    def _prepare_backend(
-        self, cpu = False, sagemaker_dp = False, backend: str = None,
-    ) -> tuple[str, DistributedType]:
-        return None, DistributedType.NO
-    pass
+    def _prepare_backend(self, *args, **kwargs): return None, DistributedType.NO
     import accelerate.state
     accelerate.state.PartialState._prepare_backend = _prepare_backend
-
-    import accelerate.accelerator
-    prepare = inspect.getsource(accelerate.accelerator.Accelerator.prepare)
-    prepare = prepare.split("\n")
-    spaces = prepare[0].find("def")
-    prepare = "\n".join(x[spaces:] for x in prepare)
-    x = "for obj in args:"
-    s = " "*spaces
-    prepare = prepare.replace(x, f'self.state.distributed_type = DistributedType.NO\n{s}{x}', 1)
-    exec(prepare, globals())
-    accelerate.accelerator.Accelerator.prepare = prepare
+    accelerate.accelerator.Accelerator.distributed_type = lambda *args, **kwargs: DistributedType.NO
 pass
 
 import transformers.utils.quantization_config
@@ -790,6 +813,9 @@ def is_bfloat16_supported():
     return SUPPORTS_BFLOAT16
 pass
 
+def is_vLLM_available():
+    return _is_package_available("vllm")
+pass
 
 # Patches models to add RoPE Scaling
 def patch_linear_scaling(
@@ -1160,6 +1186,7 @@ def unsloth_compile_transformers(
     import_from_cache       = False,
     disable                 = False,
     return_logits           = False,
+    unsloth_force_compile   = False,
 ):
     if Version(torch_version) < Version("2.4.0"):
         print(
@@ -1170,12 +1197,12 @@ def unsloth_compile_transformers(
         )
         return
     pass
-    if trust_remote_code:
+    if trust_remote_code and unsloth_force_compile == False:
         print(
             "Unsloth: We can't trace models if `trust_remote_code = True`, "\
             "so turning off some optimizations!"
         )
-        return
+        return model_types, False
     model_types = list(dict().fromkeys(model_types).keys())
     if disable: return model_types, False
 
