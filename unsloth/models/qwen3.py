@@ -377,6 +377,7 @@ class FastQwen3Model(FastLlamaModel):
             scaled_rope_module = LlamaLinearScalingRotaryEmbedding,
             attention_module   = Qwen3Attention,
         )
+
         if init_name is not None:
             exec(function, globals())
             Qwen3Attention.__init__  = eval(init_name)

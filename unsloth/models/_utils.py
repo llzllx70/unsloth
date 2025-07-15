@@ -1148,9 +1148,103 @@ def patch_gradient_accumulation_fix(Trainer):
         function,
     )
 
-    exec(function, globals())
+    # by lsj
+    # exec(function, globals())
     Trainer.training_step = _unsloth_training_step
 pass
+
+# add by lsj
+def _unsloth_training_step(
+    self,
+    model,
+    inputs: dict[str, Union[torch.Tensor, Any]],
+    num_items_in_batch: Optional[torch.Tensor] = None,
+) -> torch.Tensor:
+    """
+    Perform a training step on a batch of inputs.
+
+    Subclass and override to inject custom behavior.
+
+    Args:
+        model (`nn.Module`): The model to train.
+        inputs (`dict[str, Union[torch.Tensor, Any]]`): 
+            The inputs and targets of the model. The dictionary will be unpacked
+            before being fed to the model. Most models expect the targets under 
+            the argument `labels`. Check your model's documentation for accepted arguments.
+        num_items_in_batch (`Optional[torch.Tensor]`): Number of items (for loss normalization, optional).
+
+    Returns:
+        `torch.Tensor`: The tensor with training loss on this batch.
+    """
+    model.train()
+    
+    if hasattr(self.optimizer, "train") and callable(self.optimizer.train):
+        self.optimizer.train()
+
+    # Prepare inputs (tokenizer, model-specific formatting)
+    inputs = self._prepare_inputs(inputs)
+
+    # Handle SageMaker distributed training
+    if is_sagemaker_mp_enabled():
+        loss_mb = smp_forward_backward(model, inputs, self.args.gradient_accumulation_steps)
+        return loss_mb.reduce_mean().detach().to(self.args.device)
+
+    # Compute the loss under the context manager (e.g., autocast)
+    with self.compute_loss_context_manager():
+        loss = self.compute_loss(model, inputs, num_items_in_batch=num_items_in_batch)
+
+    del inputs
+
+    # Optionally empty cache
+    if (
+        self.args.torch_empty_cache_steps is not None and
+        self.state.global_step % self.args.torch_empty_cache_steps == 0
+    ):
+        if is_torch_xpu_available():
+            torch.xpu.empty_cache()
+        elif is_torch_mlu_available():
+            torch.mlu.empty_cache()
+        elif is_torch_musa_available():
+            torch.musa.empty_cache()
+        elif is_torch_npu_available():
+            torch.npu.empty_cache()
+        elif is_torch_mps_available():
+            torch.mps.empty_cache()
+        elif is_torch_hpu_available():
+            logger.warning(
+                "`torch_empty_cache_steps` is set but HPU device/backend does not support empty_cache()."
+            )
+        else:
+            torch.cuda.empty_cache()
+
+    kwargs = {}
+
+    # Handle LOMO and ADALOMO optimizers (which require explicit learning rate)
+    if self.args.optim in [OptimizerNames.LOMO, OptimizerNames.ADALOMO]:
+        kwargs["learning_rate"] = self._get_learning_rate()
+
+    # Multi-GPU loss mean
+    if self.args.n_gpu > 1:
+        loss = loss.mean()
+
+    # AMP (Apex mixed precision) backward
+    if self.use_apex:
+        from apex import amp
+        with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+            scaled_loss.backward()
+    else:
+        # Normalize loss manually for reporting if no compute_loss_func
+        if (not self.model_accepts_loss_kwargs or num_items_in_batch is None) and self.compute_loss_func is None:
+            loss = loss / self.args.gradient_accumulation_steps
+
+        # DeepSpeed special flag for not scaling loss with GA
+        if self.accelerator.distributed_type == DistributedType.DEEPSPEED:
+            kwargs["scale_wrt_gas"] = False
+
+        # Backward pass via accelerator
+        self.accelerator.backward(loss, **kwargs)
+
+        return loss.detach()
 
 
 def patch_tokenizer(model, tokenizer):

@@ -658,7 +658,9 @@ def _patch_trl_rl_trainers(trainer_file = "grpo_trainer"):
     # Remove multiple newlines
     RLTrainer_source = re.sub(r"[\n]{3,}", "\n", RLTrainer_source)
 
+    # modify by lsj
     # Create new function
+    """
     created_module = create_new_function(
         f"Unsloth{RLTrainer_name}",
         RLTrainer_source,
@@ -666,8 +668,11 @@ def _patch_trl_rl_trainers(trainer_file = "grpo_trainer"):
         imports,
         overwrite = False,
     )
+    """
     
     # Patch Trainer
+
+    """
     exec(f"trl.{RLTrainer_name} = created_module.Unsloth{RLTrainer_name}", locals(), globals())
     exec(f"trl.trainer.{RLTrainer_name} = created_module.Unsloth{RLTrainer_name}", locals(), globals())
     exec(f"trl.trainer.{trainer_file}.{RLTrainer_name} = created_module.Unsloth{RLTrainer_name}", locals(), globals())
@@ -676,6 +681,29 @@ def _patch_trl_rl_trainers(trainer_file = "grpo_trainer"):
     exec(f"trl.{RLConfig_name} = created_module.Unsloth{RLConfig_name}", locals(), globals())
     exec(f"trl.trainer.{RLConfig_name} = created_module.Unsloth{RLConfig_name}", locals(), globals())
     exec(f"trl.trainer.{trainer_file}.{RLConfig_name} = created_module.Unsloth{RLConfig_name}", locals(), globals())
+    """
+
+    """
+    """
+    import importlib
+
+    trainer_name = f'Unsloth{RLTrainer_name}'
+
+    created_module = importlib.import_module(f'unsloth_compiled_cache.{trainer_name}')
+    trainer_class = getattr(created_module, trainer_name)
+
+    setattr(trl, RLTrainer_name, trainer_class)
+    setattr(trl.trainer, RLTrainer_name, trainer_class)
+    setattr(getattr(trl.trainer, trainer_file), RLTrainer_name, trainer_class)
+
+    # Patch Config
+    confie_name = f'Unsloth{RLConfig_name}'
+    config_class = getattr(created_module, confie_name)
+
+    setattr(trl, RLConfig_name, config_class)
+    setattr(trl.trainer, RLConfig_name, config_class)
+    setattr(getattr(trl.trainer, trainer_file), RLConfig_name, config_class)
+
 pass
 
 

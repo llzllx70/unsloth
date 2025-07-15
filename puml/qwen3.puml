@@ -1,0 +1,86 @@
+
+@startuml
+skinparam classAttributeIconSize 0
+
+class Qwen3ForCausalLM {
+  - model: Qwen3Model
+  - lm_head: Linear
+}
+
+class Qwen3Model {
+  - embed_tokens: Embedding
+  - layers: List<Qwen3DecoderLayer>
+  - norm: Qwen3RMSNorm
+  - rotary_emb: LlamaRotaryEmbedding
+}
+
+class Qwen3DecoderLayer {
+  - self_attn: Qwen3Attention
+  - mlp: Qwen3MLP
+  - input_layernorm: Qwen3RMSNorm
+  - post_attention_layernorm: Qwen3RMSNorm
+}
+
+class Qwen3Attention {
+  - q_proj: Linear
+  - k_proj: Linear
+  - v_proj: Linear
+  - o_proj: Linear
+  - q_norm: Qwen3RMSNorm
+  - k_norm: Qwen3RMSNorm
+  - rotary_emb: LlamaRotaryEmbedding
+}
+
+class Qwen3MLP {
+  - gate_proj: Linear
+  - up_proj: Linear
+  - down_proj: Linear
+  - act_fn: SiLU
+}
+
+class Linear {
+  - in_features: int
+  - out_features: int
+  - bias: bool
+}
+
+class Embedding {
+  - num_embeddings: int
+  - embedding_dim: int
+  - padding_idx: int
+}
+
+class Qwen3RMSNorm {
+  - normalized_shape: tuple
+  - eps: float
+}
+
+class LlamaRotaryEmbedding {}
+
+class SiLU {}
+
+Qwen3ForCausalLM --> Qwen3Model : model
+Qwen3ForCausalLM --> Linear : lm_head
+Qwen3Model --> Embedding : embed_tokens
+Qwen3Model --> Qwen3DecoderLayer : layers (36)
+Qwen3Model --> Qwen3RMSNorm : norm
+Qwen3Model --> LlamaRotaryEmbedding : rotary_emb
+
+Qwen3DecoderLayer --> Qwen3Attention : self_attn
+Qwen3DecoderLayer --> Qwen3MLP : mlp
+Qwen3DecoderLayer --> Qwen3RMSNorm : input_layernorm
+Qwen3DecoderLayer --> Qwen3RMSNorm : post_attention_layernorm
+
+Qwen3Attention --> Linear : q_proj
+Qwen3Attention --> Linear : k_proj
+Qwen3Attention --> Linear : v_proj
+Qwen3Attention --> Linear : o_proj
+Qwen3Attention --> Qwen3RMSNorm : q_norm
+Qwen3Attention --> Qwen3RMSNorm : k_norm
+Qwen3Attention --> LlamaRotaryEmbedding : rotary_emb
+
+Qwen3MLP --> Linear : gate_proj
+Qwen3MLP --> Linear : up_proj
+Qwen3MLP --> Linear : down_proj
+
+@enduml

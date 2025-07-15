@@ -1,0 +1,94 @@
+
+
+@startuml
+skinparam classAttributeIconSize 0
+
+class PeftModelForCausalLM {
+  - base_model: LoraModel
+}
+
+class LoraModel {
+  - model: Qwen3ForCausalLM
+}
+
+class Qwen3ForCausalLM {
+  - model: Qwen3Model
+  - lm_head: Linear
+}
+
+class Qwen3Model {
+  - embed_tokens: Embedding
+  - layers: List<Qwen3DecoderLayer>
+  - norm: Qwen3RMSNorm
+  - rotary_emb: LlamaRotaryEmbedding
+}
+
+class Qwen3DecoderLayer {
+  - self_attn: Qwen3Attention
+  - mlp: Qwen3MLP
+  - input_layernorm: Qwen3RMSNorm
+  - post_attention_layernorm: Qwen3RMSNorm
+}
+
+class Qwen3Attention {
+  - q_proj: lora.Linear
+  - k_proj: lora.Linear
+  - v_proj: lora.Linear
+  - o_proj: lora.Linear
+  - q_norm: Qwen3RMSNorm
+  - k_norm: Qwen3RMSNorm
+  - rotary_emb: LlamaRotaryEmbedding
+}
+
+class Qwen3MLP {
+  - gate_proj: lora.Linear
+  - up_proj: lora.Linear
+  - down_proj: lora.Linear
+  - act_fn: SiLU
+}
+
+class lora_Linear {
+  - base_layer: Linear
+  - lora_dropout: ModuleDict
+  - lora_A: ModuleDict
+  - lora_B: ModuleDict
+  - lora_embedding_A: ParameterDict
+  - lora_embedding_B: ParameterDict
+  - lora_magnitude_vector: ModuleDict
+}
+
+class Linear {
+  - in_features: int
+  - out_features: int
+  - bias: bool
+}
+
+PeftModelForCausalLM --> LoraModel : base_model
+LoraModel --> Qwen3ForCausalLM : model
+Qwen3ForCausalLM --> Qwen3Model : model
+Qwen3ForCausalLM --> Linear : lm_head
+Qwen3Model --> Embedding : embed_tokens
+Qwen3Model --> Qwen3DecoderLayer : layers (36)
+Qwen3Model --> Qwen3RMSNorm : norm
+Qwen3Model --> LlamaRotaryEmbedding : rotary_emb
+
+Qwen3DecoderLayer --> Qwen3Attention : self_attn
+Qwen3DecoderLayer --> Qwen3MLP : mlp
+Qwen3DecoderLayer --> Qwen3RMSNorm : input_layernorm
+Qwen3DecoderLayer --> Qwen3RMSNorm : post_attention_layernorm
+
+Qwen3Attention --> lora_Linear : q_proj
+Qwen3Attention --> lora_Linear : k_proj
+Qwen3Attention --> lora_Linear : v_proj
+Qwen3Attention --> lora_Linear : o_proj
+Qwen3Attention --> Qwen3RMSNorm : q_norm
+Qwen3Attention --> Qwen3RMSNorm : k_norm
+Qwen3Attention --> LlamaRotaryEmbedding : rotary_emb
+
+Qwen3MLP --> lora_Linear : gate_proj
+Qwen3MLP --> lora_Linear : up_proj
+Qwen3MLP --> lora_Linear : down_proj
+
+lora_Linear --> Linear : base_layer
+
+@enduml

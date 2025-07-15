@@ -2049,8 +2049,10 @@ class FastLlamaModel:
             "is_torch_tpu_available()",
             "False",
         )
-        exec(inner_training_loop, globals())
-        Trainer._inner_training_loop = _fast_inner_training_loop
+
+        # by lsj
+        # exec(inner_training_loop, globals())
+        # Trainer._inner_training_loop = _fast_inner_training_loop
 
         # Save max_seq_length
         model.max_seq_length = max_seq_length
@@ -2089,7 +2091,7 @@ class FastLlamaModel:
 
         # Add save modules
         patch_saving_functions(model)
-        Trainer._inner_training_loop = _fast_inner_training_loop
+        # Trainer._inner_training_loop = _fast_inner_training_loop
 
         # Fix gradient accumulation
         patch_gradient_accumulation_fix(Trainer)
@@ -2658,7 +2660,9 @@ class FastLlamaModel:
 
         from transformers.trainer import Trainer 
         if Trainer._inner_training_loop.__name__ != "_fast_inner_training_loop":
-            raise RuntimeError("Unsloth: Unsuccessfully patched Trainer! Please file a bug report!")
+            # lsj
+            # raise RuntimeError("Unsloth: Unsuccessfully patched Trainer! Please file a bug report!")
+            pass
         pass
 
         # Fix loftq issues

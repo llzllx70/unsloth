@@ -139,6 +139,7 @@ pass
 # From `trl>=0.13.0`, they changed how to pass several params to the trainer
 # We need to patch to make the transition smooth
 def _backwards_compatible_trainer(trainer_class, config_class):
+
     original_init = trainer_class.__init__
     
     @wraps(original_init)
