@@ -252,7 +252,6 @@ match_format.findall(
 )
 
 def match_format_exactly(completions, **kwargs):
-    breakpoint()
     scores = []
     for completion in completions:
         score = 0

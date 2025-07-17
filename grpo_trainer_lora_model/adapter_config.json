@@ -1,7 +1,7 @@
 {
   "alpha_pattern": {},
   "auto_mapping": null,
-  "base_model_name_or_path": "models/qwen3-4b-base",
+  "base_model_name_or_path": "models/Qwen3-4B",
   "bias": "none",
   "corda_config": null,
   "eva_config": null,
@@ -24,13 +24,13 @@
   "rank_pattern": {},
   "revision": null,
   "target_modules": [
-    "v_proj",
+    "up_proj",
+    "gate_proj",
+    "down_proj",
+    "q_proj",
     "o_proj",
     "k_proj",
-    "gate_proj",
-    "up_proj",
-    "down_proj",
-    "q_proj"
+    "v_proj"
   ],
   "task_type": "CAUSAL_LM",
   "trainable_token_indices": null,

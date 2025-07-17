@@ -173,3 +173,7 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 .vscode
+grpo_saved_lora/
+grpo_saved_lora_base/
+outputs/
+*.out
