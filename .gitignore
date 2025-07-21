@@ -177,3 +177,6 @@ grpo_saved_lora/
 grpo_saved_lora_base/
 outputs/
 *.out
+grpo_saved_lora_Qwen3-4B/
+grpo_trainer_lora_model/
+grpo_trainer_lora_*/

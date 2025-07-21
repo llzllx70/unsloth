@@ -15,7 +15,8 @@ import argparse
 
 parser = argparse.ArgumentParser(description="示例：添加命令行参数")
 parser.add_argument("--task", type=str, required=False, help="test")
-parser.add_argument("--flag", type=str, required=False, help="flag")
+parser.add_argument("--model", type=str, required=False, help="flag")
+parser.add_argument("--step", type=int, required=False, help="flag")
 args = parser.parse_args()
 
 
@@ -23,7 +24,7 @@ class MyGRPOTrainer:
     
     def __init__(self):
 
-        self.saved_lora = "grpo_saved_lora"
+        self.saved_lora = f"grpo_saved_lora_{args.model}"
         
         self.max_seq_length = 2048 # Can increase for longer reasoning traces
         self.lora_rank = 32 # Larger rank = smarter, but slower
@@ -33,8 +34,7 @@ class MyGRPOTrainer:
         self.max_completion_length = self.max_seq_length - self.max_prompt_length
 
         self.model, self.tokenizer = FastLanguageModel.from_pretrained(
-            # model_name = "models/Qwen3-4B-Base",
-            model_name = "models/Qwen3-4B",
+            model_name = f"models/{args.model}",
             max_seq_length = self.max_seq_length,
             load_in_4bit = False, # False for LoRA 16bit
             fast_inference = True, # Enable vLLM fast inference
@@ -68,8 +68,9 @@ class MyGRPOTrainer:
         )
         
         self.infer_sampling_params = SamplingParams(
-            temperature = 1.0,
-            top_k = 50,
+            temperature = 0.1,
+            top_p = 0.95,
+            top_k = -1,
             max_tokens = 1024,
         )
 
@@ -98,9 +99,9 @@ class MyGRPOTrainer:
                         {"role": "user",   "content": q}
                     ],
                     "answer": a,
-                    "xx": "yy"
+                    "ref_reason": r
                 }
-                for q, a in MyDataset
+                for q, a, r in MyTrainDataset
             ]
 
             my_dataset = Dataset.from_pandas(pd.DataFrame(my_data))
@@ -153,6 +154,11 @@ class MyGRPOTrainer:
             flags = re.MULTILINE | re.DOTALL
         )
         
+    def score_print(self, scores, flag):
+
+        print(f'\n=================score:{flag}=====================')
+        print(f'{scores}')
+
     def match_format_exactly(self, completions, **kwargs):
         scores = []
         for completion in completions:
@@ -162,22 +168,29 @@ class MyGRPOTrainer:
             if self.match_format.search(response) is not None: 
                 score += 3.0
             scores.append(score)
+
+        self.score_print(scores=scores,flag='match_format_exactly')
         return scores
 
-    def match_format_approximately(self, completions, **kwargs):
-        scores = []
-        for completion in completions:
-            score = 0
-            response = completion[0]["content"]
-            # Count how many keywords are seen - we penalize if too many!
-            # If we see 1, then plus some points!
+    def F1_reward(self, completions, ref_reason, **kwargs):
 
-            # No need to reward <start_working_out> since we always prepend it!
-            # score += 0.5 if response.count(reasoning_start) == 1 else -1.0
-            score += 0.5 if response.count(reasoning_end)   == 1 else -1.0
-            score += 0.5 if response.count(solution_start)  == 1 else -1.0
-            score += 0.5 if response.count(solution_end)    == 1 else -1.0
-            scores.append(score)
+        scores = []
+
+        for idx, completion in enumerate(completions):
+
+            pred_reason = completion[0]['content']
+
+            pred_tokens = set(pred_reason.strip().split())
+            ref_tokens = set(ref_reason[idx].strip().split())
+
+            overlap = pred_tokens & ref_tokens
+            if not overlap:
+                return 0.0
+            precision = len(overlap) / len(pred_tokens)
+            recall = len(overlap) / len(ref_tokens)
+            scores.append(2 * precision * recall / (precision + recall))
+            
+        self.score_print(scores=scores,flag='F1_reward')
         return scores
 
     def check_answer(self, prompts, completions, answer, **kwargs):
@@ -191,29 +204,30 @@ class MyGRPOTrainer:
             for r in responses
         ]
 
+        print(extracted_responses)
+
         scores = []
         for guess, true_answer in zip(extracted_responses, answer):
             score = 0
+
             if guess is None:
-                scores.append(-2.0)
-                continue
-            # Correct answer gets 5 points!
-            if guess == true_answer:
+                score = -2.0
+
+            elif guess == true_answer:
                 score += 5.0
-            # Match if spaces are seen, but less reward
+
             elif guess.strip() == true_answer.strip():
                 score += 3.5
+
+            elif guess.strip() in ['3', '4', '6']:
+                score -= 6
+
             else:
-                # We also reward it if the answer is close via ratios!
-                # Ie if the answer is within some range, reward it!
-                try:
-                    ratio = float(guess) / float(true_answer)
-                    if   ratio >= 0.9 and ratio <= 1.1: score += 2.0
-                    elif ratio >= 0.8 and ratio <= 1.2: score += 1.5
-                    else: score -= 2.5 # Penalize wrong answers
-                except:
-                    score -= 4.5 # Penalize
+                score += 1
+
             scores.append(score)
+
+        self.score_print(scores=scores,flag='check_answer')
         return scores
 
     def do_train(self):
@@ -221,7 +235,8 @@ class MyGRPOTrainer:
         training_args = GRPOConfig(
             vllm_sampling_params = self.vllm_sampling_params,
             temperature = 1.0,
-            learning_rate = 5e-6,
+            # learning_rate = 5e-6,
+            learning_rate = 5e-5,
             weight_decay = 0.01,
             warmup_ratio = 0.1,
             lr_scheduler_type = "linear",
@@ -232,9 +247,9 @@ class MyGRPOTrainer:
             num_generations = 4, # Decrease if out of memory
             max_prompt_length = self.max_prompt_length,
             max_completion_length = self.max_completion_length,
-            num_train_epochs = 10000, # Set to 1 for a full training run
-            max_steps = 1000,
-            save_steps = 100,
+            num_train_epochs = args.step, # Set to 1 for a full training run
+            max_steps = args.step,
+            save_steps = args.step,
             report_to = "none", # Can use Weights & Biases
             output_dir = "outputs",
 
@@ -251,7 +266,7 @@ class MyGRPOTrainer:
             processing_class = self.tokenizer,
             reward_funcs = [
                 self.match_format_exactly,
-                self.match_format_approximately,
+                # self.F1_reward,
                 self.check_answer
             ],
             args = training_args,
@@ -261,7 +276,11 @@ class MyGRPOTrainer:
             # train_dataset = new_dataset["train"],
             # eval_dataset = new_dataset["test"],
         )
+        self.test()
+
         trainer.train()
+
+        self.test(use_lora='1')
 
         self.model.save_lora(self.saved_lora)
 
@@ -272,13 +291,27 @@ class MyGRPOTrainer:
             {"role" : "user", "content" : query},
         ], tokenize = False, add_generation_prompt = False)
 
-        output = self.model.fast_generate(
-            text,
-            sampling_params = self.infer_sampling_params,
-            lora_request = self.model.load_lora(self.saved_lora) if use_lora else None,
-        )[0].outputs[0].text
+        if use_lora == '1':
+            output = self.model.fast_generate(
+                text,
+                sampling_params = self.infer_sampling_params,
+            )[0].outputs[0].text
+
+        else:
+            lora_request = self.model.load_lora(self.saved_lora) if use_lora else None
+
+            output = self.model.fast_generate(
+                text,
+                sampling_params = self.infer_sampling_params,
+                lora_request = lora_request
+            )[0].outputs[0].text
 
         self.format_print(query, text, output, use_lora)
+
+    def test(self, use_lora=False):
+
+        for q, a, r in MyTrainDataset:
+            self.do_infer(q, use_lora=use_lora)
 
     def format_print(self, query, text, output, use_lora):
         
@@ -287,7 +320,7 @@ class MyGRPOTrainer:
         print(f'{text}')
         print(f'\n-----------------output------------------------')
         print(f'{output}')
-        print(f'======================================\n')
+        print(f'==================End of output====================\n')
         
 
 if __name__ == '__main__':
@@ -298,7 +331,6 @@ if __name__ == '__main__':
         trainer.do_train()
 
     if args.task == 'infer':
-
-        for q, _ in MyDataset:
-            trainer.do_infer(q)
-            trainer.do_infer(q, use_lora=True)
+        trainer.test(use_lora=False)
+        trainer.test(use_lora=True)
+        trainer.test(use_lora=False)
