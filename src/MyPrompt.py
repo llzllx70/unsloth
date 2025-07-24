@@ -6,7 +6,7 @@ solution_end    = "</SOLUTION>"
 
 system_prompt = \
 f"""You are given a problem.
-reasoning about the problem and provide your working out.
+Think about the problem and provide your working out.
 Place your reason between {reasoning_start} and {reasoning_end}.
 Then, provide your solution between {solution_start}{solution_end}"""
 
