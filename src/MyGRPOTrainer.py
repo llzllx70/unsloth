@@ -10,6 +10,7 @@ from datasets import load_dataset, Dataset
 import pandas as pd
 
 from MyPrompt import *
+from MyReward import MyReward
 
 import argparse
 
@@ -54,8 +55,6 @@ class MyGRPOTrainer:
             random_state = 3407,
         )
 
-        self.match_format = self.build_match_format()
-
         self.set_tokenizer_chat_template()
 
         self.vllm_sampling_params = SamplingParams(
@@ -73,6 +72,9 @@ class MyGRPOTrainer:
             top_k = -1,
             max_tokens = 1024,
         )
+
+        self.myreward = MyReward(self.tokenizer)
+
 
     @property
     def dataset(self):
@@ -140,96 +142,6 @@ class MyGRPOTrainer:
 
         self.tokenizer.chat_template = chat_template
 
-
-    def build_match_format(self):
-        
-        # Add optional EOS token matching
-        solution_end_regex = r"</SOLUTION>[\s]{0,}" + \
-            "(?:" + re.escape(self.tokenizer.eos_token) + ")?"
-
-        return re.compile(
-            rf"{reasoning_end}.*?"\
-            rf"{solution_start}(.+?){solution_end_regex}"\
-            rf"[\s]{{0,}}$",
-            flags = re.MULTILINE | re.DOTALL
-        )
-        
-    def score_print(self, scores, flag):
-
-        print(f'\n=================score:{flag}=====================')
-        print(f'{scores}')
-
-    def match_format_exactly(self, completions, **kwargs):
-        scores = []
-        for completion in completions:
-            score = 0
-            response = completion[0]["content"]
-            # Match if format is seen exactly!
-            if self.match_format.search(response) is not None: 
-                score += 3.0
-            scores.append(score)
-
-        self.score_print(scores=scores,flag='match_format_exactly')
-        return scores
-
-    def F1_reward(self, completions, ref_reason, **kwargs):
-
-        scores = []
-
-        for idx, completion in enumerate(completions):
-
-            pred_reason = completion[0]['content']
-
-            pred_tokens = set(pred_reason.strip().split())
-            ref_tokens = set(ref_reason[idx].strip().split())
-
-            overlap = pred_tokens & ref_tokens
-            if not overlap:
-                return 0.0
-            precision = len(overlap) / len(pred_tokens)
-            recall = len(overlap) / len(ref_tokens)
-            scores.append(2 * precision * recall / (precision + recall))
-            
-        self.score_print(scores=scores,flag='F1_reward')
-        return scores
-
-    def check_answer(self, prompts, completions, answer, **kwargs):
-
-        question = prompts[0][-1]["content"]
-        responses = [completion[0]["content"] for completion in completions]
-
-        extracted_responses = [
-            guess.group(1)
-            if (guess := self.match_format.search(r)) is not None else None \
-            for r in responses
-        ]
-
-        print(extracted_responses)
-
-        scores = []
-        for guess, true_answer in zip(extracted_responses, answer):
-            score = 0
-
-            if guess is None:
-                score = -2.0
-
-            elif guess == true_answer:
-                score += 5.0
-
-            elif guess.strip() == true_answer.strip():
-                score += 3.5
-
-            elif guess.strip() in ['3', '4', '6']:
-                score -= 6
-
-            else:
-                score += 1
-
-            scores.append(score)
-
-        self.score_print(scores=scores,flag='check_answer')
-        return scores
-
     def do_train(self):
         
         training_args = GRPOConfig(
@@ -264,11 +176,7 @@ class MyGRPOTrainer:
         trainer = GRPOTrainer(
             model = self.model,
             processing_class = self.tokenizer,
-            reward_funcs = [
-                self.match_format_exactly,
-                # self.F1_reward,
-                self.check_answer
-            ],
+            reward_funcs = self.myreward.build_reward(),
             args = training_args,
             train_dataset = self.dataset,
 
@@ -276,7 +184,7 @@ class MyGRPOTrainer:
             # train_dataset = new_dataset["train"],
             # eval_dataset = new_dataset["test"],
         )
-        self.test()
+        # self.test()
 
         trainer.train()
 
@@ -333,4 +241,3 @@ if __name__ == '__main__':
     if args.task == 'infer':
         trainer.test(use_lora=False)
         trainer.test(use_lora=True)
-        trainer.test(use_lora=False)
