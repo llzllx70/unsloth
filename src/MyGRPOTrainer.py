@@ -221,15 +221,6 @@ class MyGRPOTrainer:
         for q, a, r in MyTrainDataset:
             self.do_infer(q, use_lora=use_lora)
 
-    def format_print(self, query, text, output, use_lora):
-        
-        print(f'\n=================lora:{use_lora}==========={query}==========')
-        print(f'-----------------text--------------------------')
-        print(f'{text}')
-        print(f'\n-----------------output------------------------')
-        print(f'{output}')
-        print(f'==================End of output====================\n')
-        
 
 if __name__ == '__main__':
     

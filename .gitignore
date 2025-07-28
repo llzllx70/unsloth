@@ -182,3 +182,4 @@ grpo_trainer_lora_model/
 grpo_trainer_lora_*/
 grpo_saved_lora_Qwen3-4B-Base/
 ok_saved/*
+sft_saved_lora_Qwen3-4B-Base/

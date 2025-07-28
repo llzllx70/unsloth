@@ -10,6 +10,8 @@ Think about the problem and provide your working out.
 Place your reason between {reasoning_start} and {reasoning_end}.
 Then, provide your solution between {solution_start}{solution_end}"""
 
+sft_system_prompt = "你是树人大学招生专家"
+
 system_prompt_ok = \
 f"""You are given a problem.
 Provide your answer between {solution_start}{solution_end}.

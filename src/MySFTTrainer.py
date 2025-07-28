@@ -3,6 +3,7 @@ from unsloth import FastLanguageModel
 import numpy as np
 from vllm import SamplingParams
 from trl import SFTConfig, SFTTrainer
+import os
 
 from datasets import load_dataset, Dataset
 import pandas as pd
@@ -10,6 +11,7 @@ from transformers import TextStreamer
 
 from MyPrompt import *
 from MyReward import MyReward
+from BaseTrainer import BaseTrainer
 
 import argparse
 
@@ -20,7 +22,7 @@ parser.add_argument("--step", type=int, required=False, help="flag")
 args = parser.parse_args()
 
 
-class MySFTTrainer:
+class MySFTTrainer(BaseTrainer):
     
     def __init__(self):
 
@@ -65,9 +67,27 @@ class MySFTTrainer:
 
         self.myreward = MyReward(self.tokenizer)
 
-        self.dataset = self.build_dataset()
+        self.train_file = "data/train_sft.jsonl"
+        self.test_file = "data/test_sft.jsonl"
 
-    def format_dataset(self, x):
+        self.train_dataset = self.my_load_dataset(self.train_file)
+        self.test_dataset = self.my_load_dataset(self.test_file)
+
+    def kn_message(self, x):
+        
+        """
+        知识训练语料
+        """
+        expected_answer = x["expected_answer"]
+        problem = x["problem"]
+
+        return [
+            {"role" : "system",    "content" : sft_system_prompt},
+            {"role" : "user",      "content" : problem},
+            {"role" : "assistant", "content" : expected_answer},
+        ]
+
+    def message(self, x):
 
         expected_answer = x["expected_answer"]
         problem = x["problem"]
@@ -92,22 +112,46 @@ class MySFTTrainer:
 
     def build_dataset(self):
 
-        dataset_ = load_dataset("unsloth/OpenMathReasoning-mini", split = "cot")
+        def f(e):
+            problem = f'浙江省2024年本科{e["专业"]}录取情况'
+
+            expected_answer = (
+                f"浙江省2024年本科{e['专业']}专业的录取计划数为{e['计划数']}人，"
+                f"录取数为{e['录取数']}人，省控线为{e['省控线']}分。"
+                f"最高分为{e['最高分']}分，最低分为{e['最低分']}分，"
+                f"平均分为{e['平均分']}分，最低位次号为{e['最低位次号']}。"
+            )
+
+            return {
+                "expected_answer": expected_answer,
+                "problem": problem,
+                "generated_solution": f'好的，针对{problem}，我将从{list(dict(e).keys())}这些方面为您提供相关信息。',
+            }
+
+        dataset_ = load_dataset("json", data_files="data/浙江省2024年本科录取情况.jsonl", split="train")
+        dataset_ = dataset_.map(f)
+
         dataset_ = dataset_.to_pandas()[
             ["expected_answer", "problem", "generated_solution"]
         ]
 
-        # Try converting to number - if not, replace with NaN
-        is_number = pd.to_numeric(pd.Series(dataset_["expected_answer"]), errors = "coerce").notnull()
-        # Select only numbers
-        dataset_ = dataset_.iloc[np.where(is_number)[0]]
+        dataset_.to_json(self.train_file, orient="records", lines=True, force_ascii=False)
+
+        return dataset_
+
+    def my_load_dataset(self, jsonl_):
+
+        if os.path.exists(jsonl_):
+            dataset_ = load_dataset("json", data_files=jsonl_, split="train")
+            dataset_ = dataset_.to_pandas()[
+                ["expected_answer", "problem", "generated_solution"]
+            ]
+
+        else:
+            dataset_ = self.build_dataset()
 
         # pandas to JSON
-        dataset_["Messages"] = dataset_.apply(self.format_dataset, axis = 1)
-
-        # truncate to max_seq_length
-        dataset_["N"] = dataset_["Messages"].apply(lambda x: len(self.tokenizer.apply_chat_template(x)))
-        dataset_ = dataset_.loc[dataset_["N"] <= self.max_seq_length/2].copy()
+        dataset_["Messages"] = dataset_.apply(self.kn_message, axis = 1)
 
         # JSON to str
         dataset_["text"] = self.tokenizer.apply_chat_template(dataset_["Messages"].values.tolist(), tokenize = False)
@@ -129,13 +173,13 @@ class MySFTTrainer:
         trainer = SFTTrainer(
             model = self.model,
             tokenizer = self.tokenizer,
-            train_dataset = self.dataset,
+            train_dataset = self.train_dataset,
             args = SFTConfig(
                 dataset_text_field = "text",
                 per_device_train_batch_size = 1,
                 gradient_accumulation_steps = 1, # Use GA to mimic batch size!
                 warmup_steps = 5,
-                num_train_epochs = 2, # Set this for 1 full training run.
+                num_train_epochs = args.step, # Set this for 1 full training run.
                 learning_rate = 2e-4, # Reduce to 2e-5 for long training runs
                 logging_steps = 5,
                 optim = "adamw_8bit",
@@ -146,7 +190,7 @@ class MySFTTrainer:
             ),
         )
 
-        # self.test()
+        self.test()
 
         trainer.train()
 
@@ -154,33 +198,29 @@ class MySFTTrainer:
 
         self.model.save_lora(self.saved_lora)
 
-    def test(self, use_lora=False):
+    def do_infer(self, e, use_lora=False):
 
-        breakpoint()
         text = self.tokenizer.apply_chat_template(
-            self.dataset[0]["Messages"][:2],
+            e["Messages"][:2],
             tokenize = False,
             add_generation_prompt = True, # Must add for generation
         )
 
-        output = self.model.generate(
-            **self.tokenizer(text, return_tensors = "pt").to("cuda"),
-            temperature = 0,
-            max_new_tokens = 1024,
-            streamer = TextStreamer(self.tokenizer, skip_prompt = False),
-        )
+        lora_request = self.model.load_lora(self.saved_lora) if use_lora else None
 
-        self.format_print(query='', text=text, output=output[0].text, use_lora=use_lora)
+        output = self.model.fast_generate(
+            text,
+            sampling_params = self.infer_sampling_params,
+            lora_request = lora_request
+        )[0].outputs[0].text
 
-    def format_print(self, query, text, output, use_lora):
-        
-        print(f'\n=================lora:{use_lora}==========={query}==========')
-        print(f'-----------------text--------------------------')
-        print(f'{text}')
-        print(f'\n-----------------output------------------------')
-        print(f'{output}')
-        print(f'==================End of output====================\n')
-        
+        self.format_print(query='', text=text, output=output, use_lora=use_lora)
+
+    def test(self, use_lora=False):
+
+        for e in self.test_dataset:
+            self.do_infer(e, use_lora=use_lora)
+
 
 if __name__ == '__main__':
     
@@ -190,4 +230,5 @@ if __name__ == '__main__':
         trainer.do_train()
 
     if args.task == 'infer':
-        trainer.test(use_lora=False)
+        # trainer.test(use_lora=False)
+        trainer.test(use_lora=True)

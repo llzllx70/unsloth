@@ -1,0 +1,2 @@
+{"problem": "What is 7 × 8?", "generated_solution": "7 times 8 equals 56.", "expected_answer": "56"}
+{"problem": "If x + 3 = 10, what is x?", "generated_solution": "Subtract 3 from both sides: x = 10 - 3 = 7.", "expected_answer": "7"}
