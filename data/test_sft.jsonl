@@ -1,8 +1,12 @@
-{"expected_answer":"yyy","problem":"浙江省2024年本科工商管理的录取计划数是多少，只告诉我计划数，不要其他信息","generated_solution":"zzz"}
-{"expected_answer":"yyy","problem":"浙江省2024年本科工商管理的录取最高分是多少? 只告诉我最高分, 不要其他信息.","generated_solution":"zzz"}
-{"expected_answer":"yyy","problem":"浙江省2024年本科工商管理的录取最低分是多少? 只告诉我最低分, 不要其他信息.","generated_solution":"zzz"}
-{"expected_answer":"yyy","problem":"浙江省2024年本科日语的录取最高分是多少? 只告诉我最高分, 不要其他信息.","generated_solution":"zzz"}
-{"expected_answer":"yyy","problem":"浙江省2024年本科日语的录取最低分是多少? 只告诉我最低分,不要其他信息.","generated_solution":"zzz"}
+{"expected_answer":"yyy","problem":"浙江省2024年本科工商管理的计划数是多少，只告诉我计划数，不要其他信息","generated_solution":"zzz"}
+{"expected_answer":"yyy","problem":"浙江省2024年本科工商管理的最高分是多少? 只告诉我最高分, 不要其他信息.","generated_solution":"zzz"}
+{"expected_answer":"yyy","problem":"浙江省2024年本科工商管理的最低分是多少? 只告诉我最低分, 不要其他信息.","generated_solution":"zzz"}
+{"expected_answer":"yyy","problem":"浙江省2024年本科工商管理的最高分是多少?","generated_solution":"zzz"}
+{"expected_answer":"yyy","problem":"浙江省2024年本科工商管理的最低分是多少?","generated_solution":"zzz"}
+{"expected_answer":"yyy","problem":"浙江省2024年本科日语的最高分是多少? 只告诉我最高分, 不要其他信息.","generated_solution":"zzz"}
+{"expected_answer":"yyy","problem":"浙江省2024年本科日语的最低分是多少? 只告诉我最低分,不要其他信息.","generated_solution":"zzz"}
+{"expected_answer":"yyy","problem":"浙江省2024年本科日语的最高分是多少?","generated_solution":"zzz"}
+{"expected_answer":"yyy","problem":"浙江省2024年本科日语的最低分是多少?","generated_solution":"zzz"}
 {"expected_answer":"浙江省2024年本科工商管理专业的录取计划数为33人，录取数为33人，省控线为492分。最高分为567分，最低分为552分，平均分为555分，最低位次号为108952。","problem":"浙江省2024年本科工商管理录取情况","generated_solution":"好的，针对浙江省2024年本科工商管理录取情况，我将从['序号', '专业', '计划数', '录取数', '省控线', '最高分', '最低分', '平均分', '最低位次号']这些方面为您提供相关信息。"}
 {"expected_answer":"yyy","problem":"浙江省2024年本科工商管理的录取计划数是多少?只告诉我计划数，不要其他信息","generated_solution":"zzz"}
 {"expected_answer":"xxx","problem":"浙江省2024年本科工商管理的录取最低分是多少，我考了500分，请分析是否能够报考?","generated_solution":"zzz"}

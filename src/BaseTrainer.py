@@ -5,7 +5,7 @@ from datasets import load_dataset, Dataset
 
 class BaseTrainer:
     
-    def build_dataset(self):
+    def format_dataset(self):
 
         # breakpoint()
         # dataset_ = load_dataset("unsloth/OpenMathReasoning-mini", split = "cot")
@@ -36,10 +36,10 @@ class BaseTrainer:
     
     def format_print(self, query, text, output, use_lora):
         
-        print(f'\n=================lora:{use_lora}==========={query}==========')
-        print(f'-----------------text--------------------------')
+        # print(f'\n=================lora:{use_lora}==========={query}==========')
+        print(f'\n----------lora: {use_lora}-------text--------------------------')
         print(f'{text}')
-        print(f'\n-----------------output------------------------')
+        print(f'-----------------output------------------------')
         print(f'{output}')
-        print(f'==================End of output====================\n')
+        # print(f'==================End of output====================\n')
         
