@@ -28,7 +28,7 @@ class MySFTTrainer(BaseTrainer):
     
     def __init__(self):
 
-        self.saved_lora = f"sft_saved_lora_{args.model}"
+        self.saved_lora = f"saved/sft/{args.model}"
         
         self.max_seq_length = 2048 # Can increase for longer reasoning traces
         self.lora_rank = 32 # Larger rank = smarter, but slower
@@ -89,7 +89,11 @@ class MySFTTrainer(BaseTrainer):
             {"role" : "assistant", "content" : expected_answer},
         ]
 
-    def message(self, x):
+    def kn_format_message(self, x):
+
+        """
+        知识+格式训练语料
+        """
 
         expected_answer = x["expected_answer"]
         problem = x["problem"]
@@ -112,20 +116,22 @@ class MySFTTrainer(BaseTrainer):
             {"role" : "assistant", "content" : final_prompt},
         ]
 
+    def row_info(self, e):
+
+        return (
+            f"浙江省2024年本科{e['专业']}专业的录取计划数为{e['计划数']}人，"
+            f"录取数为{e['录取数']}人，省控线为{e['省控线']}分。"
+            f"最高分为{e['最高分']}分，最低分为{e['最低分']}分，"
+            f"平均分为{e['平均分']}分，最低位次号为{e['最低位次号']}。"
+        )
+
     def add_whole_row_dataset(self, dataset_):
 
         def f(e):
             problem = f'浙江省2024年本科{e["专业"]}录取情况'
 
-            expected_answer = (
-                f"浙江省2024年本科{e['专业']}专业的录取计划数为{e['计划数']}人，"
-                f"录取数为{e['录取数']}人，省控线为{e['省控线']}分。"
-                f"最高分为{e['最高分']}分，最低分为{e['最低分']}分，"
-                f"平均分为{e['平均分']}分，最低位次号为{e['最低位次号']}。"
-            )
-
             return {
-                "expected_answer": expected_answer,
+                "expected_answer": self.row_info(e),
                 "problem": problem,
                 "generated_solution": f'好的，针对{problem}，我将从{list(dict(e).keys())}这些方面为您提供相关信息。',
             }
@@ -136,31 +142,27 @@ class MySFTTrainer(BaseTrainer):
 
     def add_one_dimension_dataset(self, dataset_):
 
-        def f(e):
+        def g(row, dim):
 
-            r = random.sample(fields, 2)
-            train = r[0]
-            test = r[1]
+            prefix = f'浙江省2024年本科{row["专业"]}专业的{dim}'
+            problem = f'{prefix}是多少？'
+            expected_answer = f'{prefix}是{row[dim]}'
 
-            prefix = f'浙江省2024年本科{e["专业"]}专业的{train}'
-            dataset_2.append(
+            return (
                 {
-                    "expected_answer": f'{prefix}是{e[train]}',
-                    "problem": f'{prefix}是多少？',
-                    "generated_solution": f'{prefix}是{e[train]}'
+                    "expected_answer": expected_answer,
+                    "problem": problem,
+                    "generated_solution": f'好的，针对{problem}的问题，可以搜索到如下相关信息{self.row_info(row)}',
                 }
             )
 
-            prefix = f'浙江省2024年本科{e["专业"]}专业的{test}'
+        def f(e):
+
+            d = random.sample(fields, 2)
+            dataset_2.append(g(e, d[0]))
+
             with open(self.test_file, "a", encoding="utf-8") as f:
-                f.write(json.dumps(
-                    {
-                        "expected_answer": f'{prefix}是{e[test]}',
-                        "problem": f'{prefix}是多少？',
-                        "generated_solution": f'{prefix}是{e[test]}'
-                    },
-                    ensure_ascii=False
-                ) + "\n")
+                f.write(json.dumps(g(e, d[1]), ensure_ascii=False) + "\n")
 
         fields = ["计划数", "录取数", "省控线", "最高分", "最低分", "平均分", "最低位次号"]
 
@@ -199,7 +201,7 @@ class MySFTTrainer(BaseTrainer):
             dataset_ = self.format_dataset()
 
         # pandas to JSON
-        dataset_["Messages"] = dataset_.apply(self.kn_message, axis = 1)
+        dataset_["Messages"] = dataset_.apply(self.kn_format_message, axis = 1)
 
         # JSON to str
         dataset_["text"] = self.tokenizer.apply_chat_template(dataset_["Messages"].values.tolist(), tokenize = False)
@@ -241,10 +243,9 @@ class MySFTTrainer(BaseTrainer):
         # self.test()
 
         trainer.train()
+        self.model.save_lora(self.saved_lora)
 
         self.test(use_lora='1')
-
-        self.model.save_lora(self.saved_lora)
 
     def do_infer(self, e, use_lora=False):
 

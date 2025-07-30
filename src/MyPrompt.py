@@ -14,7 +14,7 @@ sft_system_prompt = "你是树人大学招生专家"
 
 system_prompt_ok = \
 f"""You are given a problem.
-Provide your answer between {solution_start}{solution_end}.
+Provide your answer between {solution_start} and {solution_end}.
 For example: {solution_start}x{solution_end}
 """
 

@@ -25,7 +25,7 @@ class MyGRPOTrainer:
     
     def __init__(self):
 
-        self.saved_lora = f"grpo_saved_lora_{args.model}"
+        self.saved_lora = f"saved/grpo/{args.model}"
         
         self.max_seq_length = 2048 # Can increase for longer reasoning traces
         self.lora_rank = 32 # Larger rank = smarter, but slower
@@ -79,41 +79,19 @@ class MyGRPOTrainer:
     @property
     def dataset(self):
 
-        math = False
-        if math:
-            dataset_ = load_dataset("open-r1/DAPO-Math-17k-Processed", "en", split = "train")
-
-            dataset_ = dataset_.map(lambda x: {
+        my_data = [
+            {
                 "prompt" : [
                     {"role": "system", "content": system_prompt},
-                    {"role": "user",   "content": x["prompt"]},
+                    {"role": "user",   "content": q}
                 ],
-                "answer": x["solution"],
-                "xx": "yy"
-            }) 
+                "answer": a,
+                "ref_reason": r
+            }
+            for q, a, r in MyTrainDataset
+        ]
 
-        add = True
-        if add:
-            my_data = [
-                {
-                    "prompt" : [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user",   "content": q}
-                    ],
-                    "answer": a,
-                    "ref_reason": r
-                }
-                for q, a, r in MyTrainDataset
-            ]
-
-            my_dataset = Dataset.from_pandas(pd.DataFrame(my_data))
-
-        if math and add:
-            from datasets import concatenate_datasets
-            dataset_ = concatenate_datasets([dataset_, my_dataset])
-
-        else:
-            dataset_ = my_dataset
+        dataset_ = Dataset.from_pandas(pd.DataFrame(my_data))
 
         tokenized = dataset_.map(
             lambda x: {
