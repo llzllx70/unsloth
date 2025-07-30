@@ -1,9 +1,11 @@
 
 from unsloth import FastLanguageModel
 import numpy as np
+import random
 from vllm import SamplingParams
 from trl import SFTConfig, SFTTrainer
 import os
+import json
 
 from datasets import load_dataset, Dataset
 import pandas as pd
@@ -110,7 +112,7 @@ class MySFTTrainer(BaseTrainer):
             {"role" : "assistant", "content" : final_prompt},
         ]
 
-    def format_dataset(self):
+    def add_whole_row_dataset(self, dataset_):
 
         def f(e):
             problem = f'浙江省2024年本科{e["专业"]}录取情况'
@@ -122,33 +124,64 @@ class MySFTTrainer(BaseTrainer):
                 f"平均分为{e['平均分']}分，最低位次号为{e['最低位次号']}。"
             )
 
-            if e['专业'] == '日语':
-                for i in ["计划数",	"录取数", "省控线",	"最高分", "最低分",	"平均分", "最低位次号"]:
-                    prefix = f'浙江省2024年本科{e["专业"]}专业的{i}'
-                    japans.append(
-                        {
-                            "expected_answer": f'{prefix}是{e[i]}',
-                            "problem": f'{prefix}是多少？',
-                            "generated_solution": f'{prefix}是{e[i]}'
-                        }
-                    )
-
             return {
                 "expected_answer": expected_answer,
                 "problem": problem,
                 "generated_solution": f'好的，针对{problem}，我将从{list(dict(e).keys())}这些方面为您提供相关信息。',
             }
 
-        japans = []
+        dataset_1 = dataset_.map(f)
+
+        return dataset_1
+
+    def add_one_dimension_dataset(self, dataset_):
+
+        def f(e):
+
+            r = random.sample(fields, 2)
+            train = r[0]
+            test = r[1]
+
+            prefix = f'浙江省2024年本科{e["专业"]}专业的{train}'
+            dataset_2.append(
+                {
+                    "expected_answer": f'{prefix}是{e[train]}',
+                    "problem": f'{prefix}是多少？',
+                    "generated_solution": f'{prefix}是{e[train]}'
+                }
+            )
+
+            prefix = f'浙江省2024年本科{e["专业"]}专业的{test}'
+            with open(self.test_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(
+                    {
+                        "expected_answer": f'{prefix}是{e[test]}',
+                        "problem": f'{prefix}是多少？',
+                        "generated_solution": f'{prefix}是{e[test]}'
+                    },
+                    ensure_ascii=False
+                ) + "\n")
+
+        fields = ["计划数", "录取数", "省控线", "最高分", "最低分", "平均分", "最低位次号"]
+
+        dataset_2 = []
+
+        dataset_.map(f)
+
+        return dataset_2
+
+    def format_dataset(self):
 
         dataset_ = load_dataset("json", data_files="data/浙江省2024年本科录取情况.jsonl", split="train")
-        dataset_ = dataset_.map(f)
 
-        dataset_ = dataset_.to_pandas()[
+        dataset_1 = self.add_whole_row_dataset(dataset_=dataset_)
+        dataset_2 = self.add_one_dimension_dataset(dataset_=dataset_)
+
+        dataset_1 = dataset_1.to_pandas()[
             ["expected_answer", "problem", "generated_solution"]
         ]
 
-        dataset_ = pd.concat([dataset_, pd.DataFrame(japans)], ignore_index=True)
+        dataset_ = pd.concat([dataset_1, pd.DataFrame(dataset_2)], ignore_index=True)
 
         dataset_.to_json(self.train_file, orient="records", lines=True, force_ascii=False)
 
@@ -205,7 +238,7 @@ class MySFTTrainer(BaseTrainer):
             ),
         )
 
-        self.test()
+        # self.test()
 
         trainer.train()
 

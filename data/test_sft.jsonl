@@ -1,13 +1,39 @@
-{"expected_answer":"yyy","problem":"浙江省2024年本科工商管理的计划数是多少，只告诉我计划数，不要其他信息","generated_solution":"zzz"}
-{"expected_answer":"yyy","problem":"浙江省2024年本科工商管理的最高分是多少? 只告诉我最高分, 不要其他信息.","generated_solution":"zzz"}
-{"expected_answer":"yyy","problem":"浙江省2024年本科工商管理的最低分是多少? 只告诉我最低分, 不要其他信息.","generated_solution":"zzz"}
-{"expected_answer":"yyy","problem":"浙江省2024年本科工商管理的最高分是多少?","generated_solution":"zzz"}
-{"expected_answer":"yyy","problem":"浙江省2024年本科工商管理的最低分是多少?","generated_solution":"zzz"}
-{"expected_answer":"yyy","problem":"浙江省2024年本科日语的最高分是多少? 只告诉我最高分, 不要其他信息.","generated_solution":"zzz"}
-{"expected_answer":"yyy","problem":"浙江省2024年本科日语的最低分是多少? 只告诉我最低分,不要其他信息.","generated_solution":"zzz"}
-{"expected_answer":"yyy","problem":"浙江省2024年本科日语的最高分是多少?","generated_solution":"zzz"}
-{"expected_answer":"yyy","problem":"浙江省2024年本科日语的最低分是多少?","generated_solution":"zzz"}
-{"expected_answer":"浙江省2024年本科工商管理专业的录取计划数为33人，录取数为33人，省控线为492分。最高分为567分，最低分为552分，平均分为555分，最低位次号为108952。","problem":"浙江省2024年本科工商管理录取情况","generated_solution":"好的，针对浙江省2024年本科工商管理录取情况，我将从['序号', '专业', '计划数', '录取数', '省控线', '最高分', '最低分', '平均分', '最低位次号']这些方面为您提供相关信息。"}
-{"expected_answer":"yyy","problem":"浙江省2024年本科工商管理的录取计划数是多少?只告诉我计划数，不要其他信息","generated_solution":"zzz"}
-{"expected_answer":"xxx","problem":"浙江省2024年本科工商管理的录取最低分是多少，我考了500分，请分析是否能够报考?","generated_solution":"zzz"}
-{"expected_answer":"xxx","problem":"浙江省2024年本科工商管理和市场营销的录取最低分是多少，我考了550分，请分析是否能够报考, 如何能够报考，更适合哪个专业？","generated_solution":"zzz"}
+{"expected_answer": "浙江省2024年本科工商管理专业的最高分是567", "problem": "浙江省2024年本科工商管理专业的最高分是多少？", "generated_solution": "浙江省2024年本科工商管理专业的最高分是567"}
+{"expected_answer": "浙江省2024年本科市场营销专业的省控线是492", "problem": "浙江省2024年本科市场营销专业的省控线是多少？", "generated_solution": "浙江省2024年本科市场营销专业的省控线是492"}
+{"expected_answer": "浙江省2024年本科财务管理专业的最高分是576", "problem": "浙江省2024年本科财务管理专业的最高分是多少？", "generated_solution": "浙江省2024年本科财务管理专业的最高分是576"}
+{"expected_answer": "浙江省2024年本科物业管理专业的最低分是539", "problem": "浙江省2024年本科物业管理专业的最低分是多少？", "generated_solution": "浙江省2024年本科物业管理专业的最低分是539"}
+{"expected_answer": "浙江省2024年本科公共事业管理专业的省控线是492", "problem": "浙江省2024年本科公共事业管理专业的省控线是多少？", "generated_solution": "浙江省2024年本科公共事业管理专业的省控线是492"}
+{"expected_answer": "浙江省2024年本科城乡规划专业的最高分是559", "problem": "浙江省2024年本科城乡规划专业的最高分是多少？", "generated_solution": "浙江省2024年本科城乡规划专业的最高分是559"}
+{"expected_answer": "浙江省2024年本科土木工程专业的最低分是476", "problem": "浙江省2024年本科土木工程专业的最低分是多少？", "generated_solution": "浙江省2024年本科土木工程专业的最低分是476"}
+{"expected_answer": "浙江省2024年本科建筑学专业的平均分是546", "problem": "浙江省2024年本科建筑学专业的平均分是多少？", "generated_solution": "浙江省2024年本科建筑学专业的平均分是546"}
+{"expected_answer": "浙江省2024年本科英语专业的最低位次号是109780", "problem": "浙江省2024年本科英语专业的最低位次号是多少？", "generated_solution": "浙江省2024年本科英语专业的最低位次号是109780"}
+{"expected_answer": "浙江省2024年本科朝鲜语专业的计划数是30", "problem": "浙江省2024年本科朝鲜语专业的计划数是多少？", "generated_solution": "浙江省2024年本科朝鲜语专业的计划数是30"}
+{"expected_answer": "浙江省2024年本科汉语言文学专业的录取数是48", "problem": "浙江省2024年本科汉语言文学专业的录取数是多少？", "generated_solution": "浙江省2024年本科汉语言文学专业的录取数是48"}
+{"expected_answer": "浙江省2024年本科日语专业的最低分是553", "problem": "浙江省2024年本科日语专业的最低分是多少？", "generated_solution": "浙江省2024年本科日语专业的最低分是553"}
+{"expected_answer": "浙江省2024年本科新闻学专业的计划数是19", "problem": "浙江省2024年本科新闻学专业的计划数是多少？", "generated_solution": "浙江省2024年本科新闻学专业的计划数是19"}
+{"expected_answer": "浙江省2024年本科秘书学专业的最低分是559", "problem": "浙江省2024年本科秘书学专业的最低分是多少？", "generated_solution": "浙江省2024年本科秘书学专业的最低分是559"}
+{"expected_answer": "浙江省2024年本科网络与新媒体专业的录取数是41", "problem": "浙江省2024年本科网络与新媒体专业的录取数是多少？", "generated_solution": "浙江省2024年本科网络与新媒体专业的录取数是41"}
+{"expected_answer": "浙江省2024年本科汉语国际教育专业的计划数是17", "problem": "浙江省2024年本科汉语国际教育专业的计划数是多少？", "generated_solution": "浙江省2024年本科汉语国际教育专业的计划数是17"}
+{"expected_answer": "浙江省2024年本科国际经济与贸易专业的省控线是492", "problem": "浙江省2024年本科国际经济与贸易专业的省控线是多少？", "generated_solution": "浙江省2024年本科国际经济与贸易专业的省控线是492"}
+{"expected_answer": "浙江省2024年本科国际经济与贸易（茶文化贸易方向）专业的最低分是542", "problem": "浙江省2024年本科国际经济与贸易（茶文化贸易方向）专业的最低分是多少？", "generated_solution": "浙江省2024年本科国际经济与贸易（茶文化贸易方向）专业的最低分是542"}
+{"expected_answer": "浙江省2024年本科会展经济与管理专业的最低位次号是121905", "problem": "浙江省2024年本科会展经济与管理专业的最低位次号是多少？", "generated_solution": "浙江省2024年本科会展经济与管理专业的最低位次号是121905"}
+{"expected_answer": "浙江省2024年本科旅游管理专业的录取数是42", "problem": "浙江省2024年本科旅游管理专业的录取数是多少？", "generated_solution": "浙江省2024年本科旅游管理专业的录取数是42"}
+{"expected_answer": "浙江省2024年本科投资学专业的最低分是540", "problem": "浙江省2024年本科投资学专业的最低分是多少？", "generated_solution": "浙江省2024年本科投资学专业的最低分是540"}
+{"expected_answer": "浙江省2024年本科国际商务专业的最高分是554", "problem": "浙江省2024年本科国际商务专业的最高分是多少？", "generated_solution": "浙江省2024年本科国际商务专业的最高分是554"}
+{"expected_answer": "浙江省2024年本科社会工作专业的省控线是492", "problem": "浙江省2024年本科社会工作专业的省控线是多少？", "generated_solution": "浙江省2024年本科社会工作专业的省控线是492"}
+{"expected_answer": "浙江省2024年本科家政学专业的录取数是13", "problem": "浙江省2024年本科家政学专业的录取数是多少？", "generated_solution": "浙江省2024年本科家政学专业的录取数是13"}
+{"expected_answer": "浙江省2024年本科计算机科学与技术专业的最高分是539", "problem": "浙江省2024年本科计算机科学与技术专业的最高分是多少？", "generated_solution": "浙江省2024年本科计算机科学与技术专业的最高分是539"}
+{"expected_answer": "浙江省2024年本科人工智能专业的平均分是503", "problem": "浙江省2024年本科人工智能专业的平均分是多少？", "generated_solution": "浙江省2024年本科人工智能专业的平均分是503"}
+{"expected_answer": "浙江省2024年本科通信工程专业的最低位次号是176142", "problem": "浙江省2024年本科通信工程专业的最低位次号是多少？", "generated_solution": "浙江省2024年本科通信工程专业的最低位次号是176142"}
+{"expected_answer": "浙江省2024年本科数字媒体技术专业的平均分是511", "problem": "浙江省2024年本科数字媒体技术专业的平均分是多少？", "generated_solution": "浙江省2024年本科数字媒体技术专业的平均分是511"}
+{"expected_answer": "浙江省2024年本科物联网工程专业的最高分是529", "problem": "浙江省2024年本科物联网工程专业的最高分是多少？", "generated_solution": "浙江省2024年本科物联网工程专业的最高分是529"}
+{"expected_answer": "浙江省2024年本科数据科学与大数据技术专业的省控线是492", "problem": "浙江省2024年本科数据科学与大数据技术专业的省控线是多少？", "generated_solution": "浙江省2024年本科数据科学与大数据技术专业的省控线是492"}
+{"expected_answer": "浙江省2024年本科环境工程专业的最低位次号是193639", "problem": "浙江省2024年本科环境工程专业的最低位次号是多少？", "generated_solution": "浙江省2024年本科环境工程专业的最低位次号是193639"}
+{"expected_answer": "浙江省2024年本科环境生态工程专业的计划数是64", "problem": "浙江省2024年本科环境生态工程专业的计划数是多少？", "generated_solution": "浙江省2024年本科环境生态工程专业的计划数是64"}
+{"expected_answer": "浙江省2024年本科生物工程专业的最高分是527", "problem": "浙江省2024年本科生物工程专业的最高分是多少？", "generated_solution": "浙江省2024年本科生物工程专业的最高分是527"}
+{"expected_answer": "浙江省2024年本科应用化学专业的最低位次号是191480", "problem": "浙江省2024年本科应用化学专业的最低位次号是多少？", "generated_solution": "浙江省2024年本科应用化学专业的最低位次号是191480"}
+{"expected_answer": "浙江省2024年本科食品科学与工程专业的平均分是488", "problem": "浙江省2024年本科食品科学与工程专业的平均分是多少？", "generated_solution": "浙江省2024年本科食品科学与工程专业的平均分是488"}
+{"expected_answer": "浙江省2024年本科食品质量与安全专业的省控线是492", "problem": "浙江省2024年本科食品质量与安全专业的省控线是多少？", "generated_solution": "浙江省2024年本科食品质量与安全专业的省控线是492"}
+{"expected_answer": "浙江省2024年本科护理学专业的最低位次号是105851", "problem": "浙江省2024年本科护理学专业的最低位次号是多少？", "generated_solution": "浙江省2024年本科护理学专业的最低位次号是105851"}
+{"expected_answer": "浙江省2024年本科临床医学专业的录取数是90", "problem": "浙江省2024年本科临床医学专业的录取数是多少？", "generated_solution": "浙江省2024年本科临床医学专业的录取数是90"}
+{"expected_answer": "浙江省2024年本科医学检验技术专业的省控线是492", "problem": "浙江省2024年本科医学检验技术专业的省控线是多少？", "generated_solution": "浙江省2024年本科医学检验技术专业的省控线是492"}
