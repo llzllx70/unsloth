@@ -1,16 +1,11 @@
 
 from unsloth import FastLanguageModel
-import torch
-import re
-import numpy as np
 from vllm import SamplingParams
 from trl import GRPOConfig, GRPOTrainer
 
-from datasets import load_dataset, Dataset
-import pandas as pd
-
 from MyPrompt import *
 from MyReward import MyReward
+from dataset.GRPODataset import GRPODataset
 
 import argparse
 
@@ -74,51 +69,7 @@ class MyGRPOTrainer:
         )
 
         self.myreward = MyReward(self.tokenizer)
-
-
-    @property
-    def dataset(self):
-
-        my_data = [
-            {
-                "prompt" : [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user",   "content": q}
-                ],
-                "answer": a,
-                "ref_reason": r
-            }
-            for q, a, r in MyTrainDataset
-        ]
-
-        dataset_ = Dataset.from_pandas(pd.DataFrame(my_data))
-
-        tokenized = dataset_.map(
-            lambda x: {
-                "tokens": self.tokenizer.apply_chat_template(
-                    x["prompt"], 
-                    add_generation_prompt = True, 
-                    tokenize = True
-                )
-            },
-            batched = True,
-        )
-        print(self.tokenizer.decode(tokenized[0]["tokens"]))
-
-        tokenized = tokenized.map(lambda x: {"L" : len(x["tokens"])})
-
-        a = dataset_.select(np.where(np.array(tokenized["L"]) <= self.maximum_length)[0])
-
-        return a
-
-    def set_tokenizer_chat_template(self):
-
-        # Replace with out specific template:
-        chat_template = chat_template_\
-            .replace("'{system_prompt}'", f"'{system_prompt}'")\
-            .replace("'{reasoning_start}'", f"'{reasoning_start}'")
-
-        self.tokenizer.chat_template = chat_template
+        self.grpo_dataset = GRPODataset(self.tokenizer)
 
     def do_train(self):
         
@@ -156,7 +107,7 @@ class MyGRPOTrainer:
             processing_class = self.tokenizer,
             reward_funcs = self.myreward.build_reward(),
             args = training_args,
-            train_dataset = self.dataset,
+            train_dataset = self.grpo_dataset.train_dataset,
 
             # For optional training + evaluation
             # train_dataset = new_dataset["train"],

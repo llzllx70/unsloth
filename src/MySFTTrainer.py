@@ -1,19 +1,12 @@
 
 from unsloth import FastLanguageModel
-import numpy as np
-import random
 from vllm import SamplingParams
 from trl import SFTConfig, SFTTrainer
-import os
-import json
-
-from datasets import load_dataset, Dataset
-import pandas as pd
-from transformers import TextStreamer
 
 from MyPrompt import *
 from MyReward import MyReward
 from BaseTrainer import BaseTrainer
+from dataset.BaseDataset import SFTDataset
 
 import argparse
 
@@ -69,161 +62,15 @@ class MySFTTrainer(BaseTrainer):
 
         self.myreward = MyReward(self.tokenizer)
 
-        self.train_file = "data/train_sft.jsonl"
-        self.test_file = "data/test_sft.jsonl"
+        self.sft_dataset = SFTDataset(self.tokenizer)
 
-        self.train_dataset = self.my_load_dataset(self.train_file)
-        self.test_dataset = self.my_load_dataset(self.test_file)
-
-    def kn_message(self, x):
-        
-        """
-        知识训练语料
-        """
-        expected_answer = x["expected_answer"]
-        problem = x["problem"]
-
-        return [
-            {"role" : "system",    "content" : sft_system_prompt},
-            {"role" : "user",      "content" : problem},
-            {"role" : "assistant", "content" : expected_answer},
-        ]
-
-    def kn_format_message(self, x):
-
-        """
-        知识+格式训练语料
-        """
-
-        expected_answer = x["expected_answer"]
-        problem = x["problem"]
-
-        # Remove generated <think> and </think>
-        thoughts = x["generated_solution"]
-        thoughts = thoughts.replace("<think>", "").replace("</think>", "")
-
-        # Strip newlines on left and right
-        thoughts = thoughts.strip()
-        # Add our custom formatting
-
-        final_prompt = \
-            reasoning_start + thoughts + reasoning_end + \
-            solution_start + expected_answer + solution_end
-
-        return [
-            {"role" : "system",    "content" : system_prompt},
-            {"role" : "user",      "content" : problem},
-            {"role" : "assistant", "content" : final_prompt},
-        ]
-
-    def row_info(self, e):
-
-        return (
-            f"浙江省2024年本科{e['专业']}专业的录取计划数为{e['计划数']}人，"
-            f"录取数为{e['录取数']}人，省控线为{e['省控线']}分。"
-            f"最高分为{e['最高分']}分，最低分为{e['最低分']}分，"
-            f"平均分为{e['平均分']}分，最低位次号为{e['最低位次号']}。"
-        )
-
-    def add_whole_row_dataset(self, dataset_):
-
-        def f(e):
-            problem = f'浙江省2024年本科{e["专业"]}录取情况'
-
-            return {
-                "expected_answer": self.row_info(e),
-                "problem": problem,
-                "generated_solution": f'好的，针对{problem}，我将从{list(dict(e).keys())}这些方面为您提供相关信息。',
-            }
-
-        dataset_1 = dataset_.map(f)
-
-        return dataset_1
-
-    def add_one_dimension_dataset(self, dataset_):
-
-        def g(row, dim):
-
-            prefix = f'浙江省2024年本科{row["专业"]}专业的{dim}'
-            problem = f'{prefix}是多少？'
-            expected_answer = f'{prefix}是{row[dim]}'
-
-            return (
-                {
-                    "expected_answer": expected_answer,
-                    "problem": problem,
-                    "generated_solution": f'好的，针对{problem}的问题，可以搜索到如下相关信息{self.row_info(row)}',
-                }
-            )
-
-        def f(e):
-
-            d = random.sample(fields, 2)
-            dataset_2.append(g(e, d[0]))
-
-            with open(self.test_file, "a", encoding="utf-8") as f:
-                f.write(json.dumps(g(e, d[1]), ensure_ascii=False) + "\n")
-
-        fields = ["计划数", "录取数", "省控线", "最高分", "最低分", "平均分", "最低位次号"]
-
-        dataset_2 = []
-
-        dataset_.map(f)
-
-        return dataset_2
-
-    def format_dataset(self):
-
-        dataset_ = load_dataset("json", data_files="data/浙江省2024年本科录取情况.jsonl", split="train")
-
-        dataset_1 = self.add_whole_row_dataset(dataset_=dataset_)
-        dataset_2 = self.add_one_dimension_dataset(dataset_=dataset_)
-
-        dataset_1 = dataset_1.to_pandas()[
-            ["expected_answer", "problem", "generated_solution"]
-        ]
-
-        dataset_ = pd.concat([dataset_1, pd.DataFrame(dataset_2)], ignore_index=True)
-
-        dataset_.to_json(self.train_file, orient="records", lines=True, force_ascii=False)
-
-        return dataset_
-
-    def my_load_dataset(self, jsonl_):
-
-        if os.path.exists(jsonl_):
-            dataset_ = load_dataset("json", data_files=jsonl_, split="train")
-            dataset_ = dataset_.to_pandas()[
-                ["expected_answer", "problem", "generated_solution"]
-            ]
-
-        else:
-            dataset_ = self.format_dataset()
-
-        # pandas to JSON
-        dataset_["Messages"] = dataset_.apply(self.kn_format_message, axis = 1)
-
-        # JSON to str
-        dataset_["text"] = self.tokenizer.apply_chat_template(dataset_["Messages"].values.tolist(), tokenize = False)
-        dataset_ = Dataset.from_pandas(dataset_)
-
-        return dataset_
-
-    def set_tokenizer_chat_template(self):
-
-        # Replace with out specific template:
-        chat_template = chat_template_\
-            .replace("'{system_prompt}'", f"'{system_prompt}'")\
-            .replace("'{reasoning_start}'", f"'{reasoning_start}'")
-
-        self.tokenizer.chat_template = chat_template
 
     def do_train(self):
         
         trainer = SFTTrainer(
             model = self.model,
             tokenizer = self.tokenizer,
-            train_dataset = self.train_dataset,
+            train_dataset = self.sft_dataset.train_dataset,
             args = SFTConfig(
                 dataset_text_field = "text",
                 per_device_train_batch_size = 1,
@@ -267,7 +114,7 @@ class MySFTTrainer(BaseTrainer):
 
     def test(self, use_lora=False):
 
-        for e in self.test_dataset:
+        for e in self.sft_dataset.test_dataset:
             self.do_infer(e, use_lora=use_lora)
 
 
