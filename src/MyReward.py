@@ -86,6 +86,18 @@ class MyReward:
         self.score_print(scores=scores,flag='2. F1_reward')
         return scores
 
+    def extract_reasoning_solution(self, response):
+
+        if self.format_re.search(response) is not None:
+
+            match = self.format_re.search(response)
+            reasoning = match.group(1).strip()
+            solution = match.group(2).strip()
+
+            return reasoning, solution
+
+        return None, None
+
     def check_answer(self, prompts, completions, answer, **kwargs):
 
         question = prompts[0][-1]["content"]
@@ -117,11 +129,88 @@ class MyReward:
         self.score_print(scores=scores,flag='3. check_answer')
         return scores
 
+    def score_judge(self, prompts, completions, info, **kwargs):
+
+        scores = []
+
+        for completion, info_ in zip(completions, info):
+
+            response = completion[0]["content"]
+            reasoning, solution = self.extract_reasoning_solution(response)
+
+            s = info_.get("score", 0)
+            e = info_.get("detail", {})
+
+            this_score = 0
+
+            if '最低分' in reasoning:
+                this_score += 5.0
+
+            if s < e['最低分']:
+                if '不能' in solution:
+                    this_score += 5.0
+
+            if s >= e['最低分']:
+                if '不能' not in solution and '能' in solution:
+                    this_score += 5.0
+
+            scores.append(this_score)
+
+        return scores
+
+    def rank_judge(self, prompts, completions, info, **kwargs):
+
+        scores = []
+
+        for completion, info_ in zip(completions, info):
+
+            response = completion[0]["content"]
+            reasoning, solution = self.extract_reasoning_solution(response)
+
+            r = info_.get("rank", 0)
+            e = info_.get("detail", {})
+
+            this_score = 0
+
+            if '最低位次号' in reasoning:
+                this_score += 5.0
+
+            if r > e['最低位次号']:
+                if '不能' in solution:
+                    this_score += 5.0
+
+            if r < e['最低位次号']:
+                if '不能' not in solution and '能' in solution:
+                    this_score += 5.0
+
+            scores.append(this_score)
+
+        return scores
+    def task_reward(self, prompts, completions, task, info, **kwargs):
+
+        task_ = task[0]
+
+        if task_ == "score_judge":
+            return self.score_judge(prompts, completions, info, **kwargs)
+
+        elif task_ == "rank_judge":
+            return self.rank_judge(prompts, completions, info, **kwargs)
+
+        elif task_ == "recommend":
+            return self.recommend(prompts, completions, info, **kwargs)
+
+        elif task_ == "query_info":
+            return self.query_info(prompts, completions, info, **kwargs)
+
+        else:
+            raise ValueError(f"Unknown task: {task_}")
+
     def build_reward(self):
         
         return [
             # self.match_format_exactly,
-            self.start_with_reasoning_reward,
+            # self.start_with_reasoning_reward,
             # self.F1_reward,
-            self.check_answer
+            # self.check_answer
+            self.task_reward
         ]

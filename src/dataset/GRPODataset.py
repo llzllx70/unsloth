@@ -5,29 +5,67 @@ class GRPODataset(BaseDataset):
     def __init__(self, tokenizer):
         super().__init__(tokenizer=tokenizer, flag="grpo")
 
-    def score_judge(self):
+    def score_judge(self, dataset_):
 
         """
-        {
-            "expected_answer":"浙江省2024年本科医学检验技术专业的最低位次号是183515",
-            "problem":"浙江省2024年本科医学检验技术专业的最低位次号是多少？",
-            "generated_solution":"好的，针对浙江省2024年本科医学检验技术专业的最低位次号是多少？的问题，可以搜索到如下相关信息浙江省2024年本科医学检验技术专业的录取计划数为43人，录取数为43人，省控线为492分。最高分为541分，最低分为486分，平均分为506分，最低位次号为183515。"
-        }
-
+        1. 分数判断: 我考了xx分, 能否报考yy专业？                                                                               
         """
 
-        my_data = [
-            {
+        def q(s_, z_):
+            return f'我考了{s_}分，能否报考{z_}专业？'
+
+        def f(e):
+            s_ = random.randint(450, 600)
+            z_ = e["专业"]
+
+            q_ = q(s_, z_)
+
+            return {
                 "prompt" : [
                     {"role": "system", "content": system_prompt},
-                    {"role": "user",   "content": q}
+                    {"role": "user",   "content": q_}
                 ],
-                "answer": a,
-                "ref_reason": r
+                "task": "score_judge",
+                "info": {
+                    "score": s_,
+                    "detail": e
+                }
             }
-            for q, a, r in MyTrainDataset
-        ]
 
+        d = dataset_.map(f, remove_columns=dataset_.column_names)
+
+        return self.split(d)
+
+    def rank_judge(self, dataset_):
+
+        """
+        1. 分数判断: 我考了xx分, 能否报考yy专业？                                                                               
+        """
+
+        def q(r_, z_):
+            return f'我的位次为{r_}，能否报考{z_}专业？'
+
+        def f(e):
+            r_ = random.randint(10000, 20000)
+            z_ = e["专业"]
+
+            q_ = q(r_, z_)
+
+            return {
+                "prompt" : [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user",   "content": q_}
+                ],
+                "task": "rank_judge",
+                "info": {
+                    "rank": r_,
+                    "detail": e
+                }
+            }
+
+        d = dataset_.map(f, remove_columns=dataset_.column_names)
+
+        return self.split(d)
 
     def build_dataset(self):
 
@@ -38,12 +76,13 @@ class GRPODataset(BaseDataset):
         4. 信息查询: “平均分”“最低分”  
         """
 
-        a = self.score_judge()
-        b = self.rank_judge()
-        c = self.recommend()
-        d = self.query_info()
+        tr1, te1 = self.score_judge(self.origin_dataset_)
+        tr2, te2 = self.rank_judge(self.origin_dataset_)
+        # c = self.recommend()
+        # d = self.query_info()
 
-        return concatenate_datasets([a, b, c, d])
+        self.save([tr1, tr2], self.train_file)
+        self.save([te1, te2], self.test_file)
 
     def prepare_dataset(self, dataset_):
         return dataset_

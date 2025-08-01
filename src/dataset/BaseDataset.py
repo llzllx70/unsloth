@@ -19,19 +19,23 @@ class BaseDataset:
         self.train_dataset = self.loading_dataset(self.train_file)
         self.test_dataset = self.loading_dataset(self.test_file)
 
-    def set_tokenizer_chat_template(self):
-
-        chat_template = chat_template_\
-            .replace("'{system_prompt}'", f"'{system_prompt}'")\
-            .replace("'{reasoning_start}'", f"'{reasoning_start}'")
-
-        self.tokenizer.chat_template = chat_template
-
     def loading_dataset(self, jsonl_):
 
         if not os.path.exists(jsonl_):
             self.build_dataset()
 
-        dataset_ = load_dataset("json", data_dir=jsonl_, split="train")
+        dataset_ = load_dataset("json", data_files=jsonl_, split="train")
         return self.prepare_dataset(dataset_)
+
+    def split(self, dataset_, test_size=0.2, seed=42):
+
+        s = dataset_.train_test_split(test_size=test_size, seed=seed)
+        return s['train'], s['test']
+
+    def save(self, l_dataset_, jsonl_):
+        
+        dataset_ = concatenate_datasets(l_dataset_)
+        dataset_.to_json(jsonl_, orient="records", lines=True, force_ascii=False)
+
+
 

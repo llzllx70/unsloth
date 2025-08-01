@@ -5,6 +5,7 @@ from trl import GRPOConfig, GRPOTrainer
 
 from MyPrompt import *
 from MyReward import MyReward
+from BaseTrainer import BaseTrainer
 from dataset.GRPODataset import GRPODataset
 
 import argparse
@@ -16,7 +17,7 @@ parser.add_argument("--step", type=int, required=False, help="flag")
 args = parser.parse_args()
 
 
-class MyGRPOTrainer:
+class MyGRPOTrainer(BaseTrainer):
     
     def __init__(self):
 

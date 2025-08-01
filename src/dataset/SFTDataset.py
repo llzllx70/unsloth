@@ -67,58 +67,39 @@ class SFTDataset(BaseDataset):
 
         dataset_1 = dataset_.map(f)
 
-        return dataset_1
+        return self.split(dataset_1)
 
     def add_one_dimension_dataset(self, dataset_):
 
-        def g(row, dim):
+        def f(e):
 
-            prefix = f'浙江省2024年本科{row["专业"]}专业的{dim}'
+            d = random.sample(fields, 1)
+
+            prefix = f'浙江省2024年本科{e["专业"]}专业的{d}'
             problem = f'{prefix}是多少？'
-            expected_answer = f'{prefix}是{row[dim]}'
+            expected_answer = f'{prefix}是{e[d]}'
 
             return (
                 {
                     "expected_answer": expected_answer,
                     "problem": problem,
-                    "generated_solution": f'好的，针对{problem}的问题，可以搜索到如下相关信息{self.row_info(row)}',
+                    "generated_solution": f'好的，针对{problem}的问题，可以搜索到如下相关信息{self.row_info(e)}',
                 }
             )
 
-        def f(e):
-
-            d = random.sample(fields, 2)
-            dataset_2.append(g(e, d[0]))
-
-            with open(self.test_file, "a", encoding="utf-8") as f:
-                f.write(json.dumps(g(e, d[1]), ensure_ascii=False) + "\n")
-
         fields = ["计划数", "录取数", "省控线", "最高分", "最低分", "平均分", "最低位次号"]
 
-        dataset_2 = []
+        dataset_2 = dataset_.map(f)
 
-        dataset_.map(f)
-
-        return dataset_2
+        return self.split(dataset_2)
 
     def build_dataset(self):
 
-        dataset_1 = self.add_whole_row_dataset(dataset_=self.origin_dataset_)
-        dataset_2 = self.add_one_dimension_dataset(dataset_=self.origin_dataset_)
+        tr1, te1 = self.add_whole_row_dataset(dataset_=self.origin_dataset_)
+        tr2, te2 = self.add_one_dimension_dataset(dataset_=self.origin_dataset_)
 
-        split_1 = dataset_1.train_test_split(test_size=0.2, seed=42)
-        train_1, test_1 = split_1["train"], split_1["test"]
-
-        split_2 = dataset_2.train_test_split(test_size=0.2, seed=42)
-        train_2, test_2 = split_2["train"], split_2["test"]
-
-        train_dataset = concatenate_datasets([train_1, train_2])
-        test_dataset  = concatenate_datasets([test_1, test_2])
-
-        train_dataset.to_json(self.train_file, orient="records", lines=True, force_ascii=False)
-        test_dataset.to_json(self.test_file, orient="records", lines=True, force_ascii=False)
-
-        return train_dataset, test_dataset
+        self.save([tr1, tr2], self.train_file)
+        self.save([te1, te2], self.test_file)
 
     def prepare_dataset(self, dataset_):
 
