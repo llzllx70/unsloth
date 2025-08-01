@@ -138,6 +138,10 @@ class MyReward:
             response = completion[0]["content"]
             reasoning, solution = self.extract_reasoning_solution(response)
 
+            if reasoning is None or solution is None:
+                scores.append(0.0)
+                continue
+
             s = info_.get("score", 0)
             e = info_.get("detail", {})
 
@@ -166,6 +170,10 @@ class MyReward:
 
             response = completion[0]["content"]
             reasoning, solution = self.extract_reasoning_solution(response)
+
+            if reasoning is None or solution is None:
+                scores.append(0.0)
+                continue
 
             r = info_.get("rank", 0)
             e = info_.get("detail", {})
