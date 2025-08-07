@@ -4,10 +4,10 @@ from vllm import SamplingParams
 from trl import GRPOConfig, GRPOTrainer
 from peft import PeftModel
 
-from MyPrompt import *
-from MyReward import MyReward
-from BaseTrainer import BaseTrainer
-from dataset.GRPODataset import GRPODataset
+from src.prompt.MyPrompt import *
+from src.reward.MyReward import MyReward
+from src.trainer.BaseTrainer import BaseTrainer
+from src.dataset.GRPODataset import GRPODataset
 
 import argparse
 

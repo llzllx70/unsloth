@@ -1,4 +1,4 @@
-from dataset.BaseDataset import *
+from src.dataset.BaseDataset import *
 
 class SFTDataset(BaseDataset):
     

@@ -1,10 +1,11 @@
-from MyPrompt import *
 import random
 import json
 from datasets import load_dataset, Dataset, concatenate_datasets
 import pandas as pd
 import os
 from transformers import TextStreamer
+
+from src.prompt.MyPrompt import *
 
 class BaseDataset:
     

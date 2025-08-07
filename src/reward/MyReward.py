@@ -1,7 +1,7 @@
 
 import re
 
-from MyPrompt import *
+from src.prompt.MyPrompt import *
 
 class MyReward:
 

@@ -1,5 +1,5 @@
 
-from MyPrompt import chat_template_, system_prompt, reasoning_start
+from src.prompt.MyPrompt import chat_template_, system_prompt, reasoning_start
 
 class BaseTrainer:
 
