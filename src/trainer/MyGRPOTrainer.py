@@ -2,6 +2,7 @@
 from unsloth import FastLanguageModel
 from vllm import SamplingParams
 from trl import GRPOConfig, GRPOTrainer
+from peft import PeftModel
 
 from MyPrompt import *
 from MyReward import MyReward
@@ -21,6 +22,7 @@ class MyGRPOTrainer(BaseTrainer):
     
     def __init__(self):
 
+        self.sft_saved_lora = f"saved/sft/{args.model}"
         self.saved_lora = f"saved/grpo/{args.model}"
         
         self.max_seq_length = 2048 # Can increase for longer reasoning traces
@@ -51,6 +53,8 @@ class MyGRPOTrainer(BaseTrainer):
             random_state = 3407,
         )
 
+        self.add_lora1()
+
         self.set_tokenizer_chat_template()
 
         self.vllm_sampling_params = SamplingParams(
@@ -71,6 +75,15 @@ class MyGRPOTrainer(BaseTrainer):
 
         self.myreward = MyReward(self.tokenizer)
         self.grpo_dataset = GRPODataset(self.tokenizer)
+
+    def add_lora1(self):
+
+        self.model = PeftModel.from_pretrained(self.model, self.sft_saved_lora)
+
+        # 冻结 lora1 参数
+        for name, param in self.model.named_parameters():
+            if "lora_" in name:
+                param.requires_grad = False
 
     def do_train(self):
         

@@ -3,10 +3,10 @@ from unsloth import FastLanguageModel
 from vllm import SamplingParams
 from trl import SFTConfig, SFTTrainer
 
-from MyPrompt import *
-from MyReward import MyReward
-from BaseTrainer import BaseTrainer
-from dataset.BaseDataset import SFTDataset
+from prompt.MyPrompt import *
+from reward.MyReward import MyReward
+from trainer.BaseTrainer import BaseTrainer
+from dataset.SFTDataset import SFTDataset
 
 import argparse
 

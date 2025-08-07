@@ -138,6 +138,7 @@ class MyReward:
             response = completion[0]["content"]
             reasoning, solution = self.extract_reasoning_solution(response)
 
+            breakpoint()
             if reasoning is None or solution is None:
                 scores.append(0.0)
                 continue

@@ -65,7 +65,7 @@ class SFTDataset(BaseDataset):
                 "generated_solution": f'好的，针对{problem}，我将从{list(dict(e).keys())}这些方面为您提供相关信息。',
             }
 
-        dataset_1 = dataset_.map(f)
+        dataset_1 = dataset_.map(f, remove_columns=dataset_.column_names)
 
         return self.split(dataset_1)
 
@@ -73,7 +73,7 @@ class SFTDataset(BaseDataset):
 
         def f(e):
 
-            d = random.sample(fields, 1)
+            d = random.choice(fields)
 
             prefix = f'浙江省2024年本科{e["专业"]}专业的{d}'
             problem = f'{prefix}是多少？'
@@ -89,7 +89,7 @@ class SFTDataset(BaseDataset):
 
         fields = ["计划数", "录取数", "省控线", "最高分", "最低分", "平均分", "最低位次号"]
 
-        dataset_2 = dataset_.map(f)
+        dataset_2 = dataset_.map(f, remove_columns=dataset_.column_names)
 
         return self.split(dataset_2)
 
