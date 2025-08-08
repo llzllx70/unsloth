@@ -8,6 +8,7 @@ from src.prompt.MyPrompt import *
 from src.reward.MyReward import MyReward
 from src.trainer.BaseTrainer import BaseTrainer
 from src.dataset.GRPODataset import GRPODataset
+from constant.Funs import set_tokenizer_chat_template
 
 import argparse
 
@@ -55,7 +56,7 @@ class MyGRPOTrainer(BaseTrainer):
 
         self.add_lora1()
 
-        self.set_tokenizer_chat_template()
+        set_tokenizer_chat_template(self.tokenizer)
 
         self.vllm_sampling_params = SamplingParams(
             min_p = 0.1,

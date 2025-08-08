@@ -1,6 +1,6 @@
 
 
-from MyReward import *
+from reward.MyReward import *
 
 
 class MyTest:

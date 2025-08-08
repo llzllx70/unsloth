@@ -1,7 +1,7 @@
 
 import os
 
-from MyCollector import MyCollector as mc
+from test.MyCollector import MyCollector as mc
 
 from unsloth import FastLanguageModel
 import torch

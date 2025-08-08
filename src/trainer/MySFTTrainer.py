@@ -7,6 +7,7 @@ from src.prompt.MyPrompt import *
 from src.reward.MyReward import MyReward
 from src.trainer.BaseTrainer import BaseTrainer
 from src.dataset.SFTDataset import SFTDataset
+from src.constant.Funs import set_tokenizer_chat_template
 
 import argparse
 
@@ -51,7 +52,7 @@ class MySFTTrainer(BaseTrainer):
             random_state = 3407,
         )
 
-        self.set_tokenizer_chat_template()
+        set_tokenizer_chat_template(self.tokenizer)
 
         self.infer_sampling_params = SamplingParams(
             temperature = 0.1,
