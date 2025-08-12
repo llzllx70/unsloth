@@ -8,6 +8,9 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 import pandas as pd
 import argparse
+import os
+from openpyxl import load_workbook
+from openpyxl.styles import Font, PatternFill, Alignment
 
 parser = argparse.ArgumentParser(description="示例：添加命令行参数")
 parser.add_argument("--task", type=str, required=False, help="test")
@@ -72,7 +75,7 @@ class MyInfer:
             text = self.tokenizer.apply_chat_template(
                 item['prompt'],
                 tokenize = False, 
-                add_generation_prompt = True
+                add_generation_prompt = False
             )
 
             output = self.model.generate(
@@ -87,14 +90,39 @@ class MyInfer:
             print(f"Input: {text}")
             print(f"Output: {output_text}\n")    
 
-            ret.append({
-                f'{self.task}_text': text,
-                f'{self.task}_output': output_text 
-            })
+            if self.task == 'sft':
+                ret.append({
+                    f'{self.task}_info': item['info'],
+                    f'{self.task}_text': text,
+                    f'{self.task}_output': output_text 
+                })
+
+            else:
+                ret.append({
+                    f'{self.task}_output': output_text 
+                })
 
         return ret
 
+def scp(file_):
+    
+    import subprocess
+
+    # scp 命令
+    cmd = [
+        "scp",
+        file_,
+        f"double@172.16.2.4://Users/double/Downloads/"
+    ]
+
+    # 执行命令
+    subprocess.run(cmd, check=True)
+
+    print(f"文件 {file_} 已成功复制到远程服务器。")
+
 def compare_infer():
+
+    excel = 'compare_infer.xlsx'
 
     ret1 = MyInfer(task='sft', model=args.model).do_grpo_infer()
     ret2 = MyInfer(task='grpo', model=args.model).do_grpo_infer()
@@ -105,8 +133,63 @@ def compare_infer():
         ret.append({**a, **b})     
 
     df = pd.DataFrame(ret)
+
+    if os.path.exists(excel):
+        os.remove(excel)
+
     df.to_excel('compare_infer.xlsx', index=False)
     
+    # 3. 用 openpyxl 打开并格式化
+    wb = load_workbook(excel)
+    ws = wb.active
+
+    # 设置列宽（按需要调整）
+    col_widths = {
+        "A": 40,  # question
+        "B": 40,  # text
+        "C": 60,  # lora=False
+        "D": 60,  # lora=True
+    }
+
+    for col, width in col_widths.items():
+        ws.column_dimensions[col].width = width
+
+    # 冻结首行
+    ws.freeze_panes = "A2"
+
+    # 设置首行颜色和字体
+    header_fill = PatternFill(start_color="FFD966", end_color="FFD966", fill_type="solid")  # 淡黄色
+    header_font = Font(bold=True, color="000000")  # 黑色加粗
+
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(wrap_text=True, vertical="top")
+
+    # 设置所有单元格自动换行 + 顶端对齐
+    for row in ws.iter_rows():
+        for cell in row:
+            cell.alignment = Alignment(wrap_text=True, vertical="top")
+
+    # 自动计算行高（根据列宽估算行数）
+    for row in ws.iter_rows():
+        max_lines = 1
+        for cell in row:
+            if cell.value:
+                col_letter = cell.column_letter
+                col_width = col_widths.get(col_letter, 10)  # 取固定列宽
+                text_length = len(str(cell.value))
+                # 按列宽估算行数
+                lines = max(1, int(text_length / (col_width * 0.9)) + 1)
+                max_lines = max(max_lines, lines)
+        ws.row_dimensions[row[0].row].height = max_lines * 15  # 每行大约 15 高度
+
+    # 保存
+    wb.save(excel)
+
+    print(f"写入完成并格式化 → {excel}")
+
+    scp(excel)
 
 if __name__ == '__main__':
     compare_infer()
