@@ -3,7 +3,6 @@ from unsloth import FastLanguageModel
 from vllm import SamplingParams
 from trl import GRPOConfig, GRPOTrainer
 from peft import PeftModel
-import pandas as pd
 
 from src.prompt.MyPrompt import *
 from src.reward.MyReward import MyReward
@@ -11,7 +10,6 @@ from src.trainer.BaseTrainer import BaseTrainer
 from src.dataset.GRPODataset import GRPODataset
 from src.constant.Funs import set_tokenizer_chat_template
 from src.constant.Config import *
-
 
 import argparse
 
@@ -78,8 +76,6 @@ class MyGRPOTrainer(BaseTrainer):
         self.myreward = MyReward(self.tokenizer)
         self.grpo_dataset = GRPODataset(self.tokenizer)
 
-        self.test_result = []
-
     def do_train(self):
         
         training_args = GRPOConfig(
@@ -130,7 +126,7 @@ class MyGRPOTrainer(BaseTrainer):
 
         self.test(use_lora=True)
 
-    def do_infer(self, item):
+    def do_infer(self, item, use_lora=False):
 
         text = self.tokenizer.apply_chat_template(
             item['prompt'],
@@ -138,15 +134,7 @@ class MyGRPOTrainer(BaseTrainer):
             add_generation_prompt = False
         )
 
-        output = self.model.fast_generate(
-            text,
-            sampling_params = self.infer_sampling_params,
-            lora_request = None
-        )[0].outputs[0].text
-
-        self.format_print('', text, output, use_lora=False)
-
-        lora_request = self.model.load_lora(self.saved_lora)
+        lora_request = self.model.load_lora(self.saved_lora) if use_lora else None
 
         output = self.model.fast_generate(
             text,
@@ -156,10 +144,10 @@ class MyGRPOTrainer(BaseTrainer):
 
         self.format_print('', text, output, use_lora)
 
-    def test(self):
+    def test(self, use_lora=False):
 
         for item in self.grpo_dataset.test_dataset:
-            self.do_infer(item)
+            self.do_infer(item, use_lora=use_lora)
 
 
 if __name__ == '__main__':
@@ -170,4 +158,5 @@ if __name__ == '__main__':
         trainer.do_train()
 
     if args.task == 'infer':
-        trainer.test()
+        trainer.test(use_lora=False)
+        trainer.test(use_lora=True)
