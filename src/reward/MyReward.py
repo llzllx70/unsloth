@@ -46,7 +46,6 @@ class MyReward:
             score = 0
             response = completion[0]["content"]
             if self.format_re.search(response) is not None: 
-                breakpoint()
                 score += 3.0
             scores.append(score)
 
@@ -136,9 +135,12 @@ class MyReward:
         for completion, info_ in zip(completions, info):
 
             response = completion[0]["content"]
+
+            if not response.startswith("<REASONING>"):
+                response = "<REASONING>" + response
+
             reasoning, solution = self.extract_reasoning_solution(response)
 
-            breakpoint()
             if reasoning is None or solution is None:
                 scores.append(0.0)
                 continue
@@ -146,17 +148,42 @@ class MyReward:
             s = info_.get("score", 0)
             e = info_.get("detail", {})
 
+            min_score = e.get('最低分', 0)
+            max_score = e.get('最高分', 0)
+            control_score = e.get('省控线', 0)
+
             this_score = 0
 
-            if '最低分' in reasoning:
-                this_score += 5.0
+            # 相关
+            for i in ['最低分', min_score, max_score, control_score]:
+                if i == 0:
+                    continue
+                if str(i) in reasoning:
+                    this_score += 1.0
 
-            if s < e['最低分']:
-                if '不能' in solution:
+            # 不相关
+            for i in ['计划数', '录取数', '最低位次号']:
+                if i in solution:
+                    this_score -= 0.5
+
+            if s < min_score:
+                if '小于' in reasoning or '低于' in reasoning:
+                    this_score += 1.0
+
+                if '不能' in solution or '不可以' in solution:
                     this_score += 5.0
 
-            if s >= e['最低分']:
-                if '不能' not in solution and '能' in solution:
+                elif '能' in solution or '可以' in solution:
+                    this_score -= 5.0
+
+            if s >= min_score:
+                if '大于' in reasoning or '高于' in reasoning:
+                    this_score += 1.0
+                
+                if '不能' in solution or '不可以' in solution:
+                    this_score -= 5.0
+
+                elif '能' in solution or '可以' in solution:
                     this_score += 5.0
 
             scores.append(this_score)
@@ -179,17 +206,38 @@ class MyReward:
             r = info_.get("rank", 0)
             e = info_.get("detail", {})
 
+            min_rank = e.get('最低位次号', 0)
+
             this_score = 0
 
-            if '最低位次号' in reasoning:
-                this_score += 5.0
+            # 相关
+            for i in ['最低位次号', min_rank]:
+                if str(i) in reasoning:
+                    this_score += 1.0
 
-            if r > e['最低位次号']:
-                if '不能' in solution:
+            # 不相关
+            for i in ['最高分', '最低分', '省控线']:
+                if i in solution:
+                    this_score -= 0.5
+
+            if r > min_rank:
+                if '大于' in reasoning or '高于' in reasoning:
+                    this_score += 1.0
+                    
+                if '不能' in solution or '不可以' in solution:
                     this_score += 5.0
 
-            if r < e['最低位次号']:
-                if '不能' not in solution and '能' in solution:
+                elif '能' in solution or '可以' in solution:
+                    this_score -= 5.0
+
+            if r < min_rank:
+                if '小于' in reasoning or '低于' in reasoning:
+                    this_score += 1.0
+
+                if '不能' in solution or '不可以' in solution:
+                    this_score -= 5.0
+
+                elif '能' in solution or '可以' in solution:
                     this_score += 5.0
 
             scores.append(this_score)

@@ -8,6 +8,7 @@ from src.reward.MyReward import MyReward
 from src.trainer.BaseTrainer import BaseTrainer
 from src.dataset.SFTDataset import SFTDataset
 from src.constant.Funs import set_tokenizer_chat_template
+from src.constant.Config import *
 
 import argparse
 
@@ -22,7 +23,7 @@ class MySFTTrainer(BaseTrainer):
     
     def __init__(self):
 
-        self.saved_lora = f"saved/sft/{args.model}"
+        self.saved_lora = sft_saved_lora
         
         self.max_seq_length = 2048 # Can increase for longer reasoning traces
         self.lora_rank = 32 # Larger rank = smarter, but slower

@@ -1,4 +1,4 @@
-from dataset.BaseDataset import *
+from src.dataset.BaseDataset import *
 
 class GRPODataset(BaseDataset):
     
@@ -46,7 +46,7 @@ class GRPODataset(BaseDataset):
             return f'我的位次为{r_}，能否报考{z_}专业？'
 
         def f(e):
-            r_ = random.randint(10000, 20000)
+            r_ = random.randint(100000, 200000)
             z_ = e["专业"]
 
             q_ = q(r_, z_)

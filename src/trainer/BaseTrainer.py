@@ -1,5 +1,4 @@
 
-from constant.Funs import set_tokenizer_chat_template
 
 class BaseTrainer:
 
@@ -9,6 +8,6 @@ class BaseTrainer:
         print(f'\n----------lora: {use_lora}-------text--------------------------')
         print(f'{text}')
         print(f'-----------------output------------------------')
-        print(f'{output}')
+        print(f'{output}\n\n')
         # print(f'==================End of output====================\n')
         

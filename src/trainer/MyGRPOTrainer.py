@@ -3,12 +3,15 @@ from unsloth import FastLanguageModel
 from vllm import SamplingParams
 from trl import GRPOConfig, GRPOTrainer
 from peft import PeftModel
+import pandas as pd
 
 from src.prompt.MyPrompt import *
 from src.reward.MyReward import MyReward
 from src.trainer.BaseTrainer import BaseTrainer
 from src.dataset.GRPODataset import GRPODataset
-from constant.Funs import set_tokenizer_chat_template
+from src.constant.Funs import set_tokenizer_chat_template
+from src.constant.Config import *
+
 
 import argparse
 
@@ -23,10 +26,9 @@ class MyGRPOTrainer(BaseTrainer):
     
     def __init__(self):
 
-        self.sft_saved_lora = f"saved/sft/{args.model}"
-        self.saved_lora = f"saved/grpo/{args.model}"
+        self.saved_lora = grpo_saved_lora
         
-        self.max_seq_length = 2048 # Can increase for longer reasoning traces
+        self.max_seq_length = 1024 # Can increase for longer reasoning traces
         self.lora_rank = 32 # Larger rank = smarter, but slower
 
         self.maximum_length = 201
@@ -34,7 +36,7 @@ class MyGRPOTrainer(BaseTrainer):
         self.max_completion_length = self.max_seq_length - self.max_prompt_length
 
         self.model, self.tokenizer = FastLanguageModel.from_pretrained(
-            model_name = f"models/{args.model}",
+            model_name = sft_merged_model,
             max_seq_length = self.max_seq_length,
             load_in_4bit = False, # False for LoRA 16bit
             fast_inference = True, # Enable vLLM fast inference
@@ -54,8 +56,6 @@ class MyGRPOTrainer(BaseTrainer):
             random_state = 3407,
         )
 
-        self.add_lora1()
-
         set_tokenizer_chat_template(self.tokenizer)
 
         self.vllm_sampling_params = SamplingParams(
@@ -65,6 +65,7 @@ class MyGRPOTrainer(BaseTrainer):
             seed = 3407,
             stop = [self.tokenizer.eos_token],
             include_stop_str_in_output = True,
+            max_tokens=self.max_completion_length
         )
         
         self.infer_sampling_params = SamplingParams(
@@ -77,26 +78,20 @@ class MyGRPOTrainer(BaseTrainer):
         self.myreward = MyReward(self.tokenizer)
         self.grpo_dataset = GRPODataset(self.tokenizer)
 
-    def add_lora1(self):
-
-        self.model = PeftModel.from_pretrained(self.model, self.sft_saved_lora)
-
-        # 冻结 lora1 参数
-        for name, param in self.model.named_parameters():
-            if "lora_" in name:
-                param.requires_grad = False
+        self.test_result = []
 
     def do_train(self):
         
         training_args = GRPOConfig(
             vllm_sampling_params = self.vllm_sampling_params,
-            temperature = 1.0,
+            temperature = 1.5,  # default 1.0
             # learning_rate = 5e-6,
             learning_rate = 5e-5,
             weight_decay = 0.01,
             warmup_ratio = 0.1,
             lr_scheduler_type = "linear",
             optim = "adamw_8bit",
+            # optim = "adamw_torch",
             logging_steps = 1,
             per_device_train_batch_size = 1,
             gradient_accumulation_steps = 1, # Increase to 4 for smoother training
@@ -128,42 +123,43 @@ class MyGRPOTrainer(BaseTrainer):
             # train_dataset = new_dataset["train"],
             # eval_dataset = new_dataset["test"],
         )
-        # self.test()
+        self.test()
 
         trainer.train()
-
-        self.test(use_lora='1')
-
         self.model.save_lora(self.saved_lora)
 
-    def do_infer(self, query, use_lora=False):
+        self.test(use_lora=True)
 
-        text = self.tokenizer.apply_chat_template([
-            {"role" : "system", "content" : system_prompt},
-            {"role" : "user", "content" : query},
-        ], tokenize = False, add_generation_prompt = False)
+    def do_infer(self, item):
 
-        if use_lora == '1':
-            output = self.model.fast_generate(
-                text,
-                sampling_params = self.infer_sampling_params,
-            )[0].outputs[0].text
+        text = self.tokenizer.apply_chat_template(
+            item['prompt'],
+            tokenize = False, 
+            add_generation_prompt = False
+        )
 
-        else:
-            lora_request = self.model.load_lora(self.saved_lora) if use_lora else None
+        output = self.model.fast_generate(
+            text,
+            sampling_params = self.infer_sampling_params,
+            lora_request = None
+        )[0].outputs[0].text
 
-            output = self.model.fast_generate(
-                text,
-                sampling_params = self.infer_sampling_params,
-                lora_request = lora_request
-            )[0].outputs[0].text
+        self.format_print('', text, output, use_lora=False)
 
-        self.format_print(query, text, output, use_lora)
+        lora_request = self.model.load_lora(self.saved_lora)
 
-    def test(self, use_lora=False):
+        output = self.model.fast_generate(
+            text,
+            sampling_params = self.infer_sampling_params,
+            lora_request = lora_request
+        )[0].outputs[0].text
 
-        for q, a, r in MyTrainDataset:
-            self.do_infer(q, use_lora=use_lora)
+        self.format_print('', text, output, use_lora)
+
+    def test(self):
+
+        for item in self.grpo_dataset.test_dataset:
+            self.do_infer(item)
 
 
 if __name__ == '__main__':
@@ -174,5 +170,4 @@ if __name__ == '__main__':
         trainer.do_train()
 
     if args.task == 'infer':
-        trainer.test(use_lora=False)
-        trainer.test(use_lora=True)
+        trainer.test()

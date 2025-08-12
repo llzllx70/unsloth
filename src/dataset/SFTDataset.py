@@ -98,8 +98,8 @@ class SFTDataset(BaseDataset):
         tr1, te1 = self.add_whole_row_dataset(dataset_=self.origin_dataset_)
         tr2, te2 = self.add_one_dimension_dataset(dataset_=self.origin_dataset_)
 
-        self.save([tr1, tr2], self.train_file)
-        self.save([te1, te2], self.test_file)
+        self.save([tr1, te1, tr2], self.train_file)
+        self.save([te2], self.test_file)
 
     def prepare_dataset(self, dataset_):
 
