@@ -87,6 +87,9 @@ class MyReward:
 
     def extract_reasoning_solution(self, response):
 
+        if not response.startswith("<REASONING>"):
+            response = "<REASONING>" + response
+
         if self.format_re.search(response) is not None:
 
             match = self.format_re.search(response)
@@ -136,9 +139,6 @@ class MyReward:
 
             response = completion[0]["content"]
 
-            if not response.startswith("<REASONING>"):
-                response = "<REASONING>" + response
-
             reasoning, solution = self.extract_reasoning_solution(response)
 
             score = 0
@@ -161,29 +161,29 @@ class MyReward:
 
             response = completion[0]["content"]
 
+            reasoning, solution = self.extract_reasoning_solution(response)
+
             s = info_.get("score", 0)
             e = info_.get("detail", {})
 
             min_score = e.get('最低分', 0)
+            zy = e.get("专业", '')
 
             this_score = 0
 
-            # 相关
-            for i in ['最低分', min_score]:
-                if i == 0:
-                    continue
-                if str(i) in response:
-                    this_score += 1.0
-
             if s < min_score:
-                for i in ['小于', '低于', '不能', '不可以']:
-                    if i in response:
-                        this_score += 1.0
+                if reasoning and f'{s}<{min_score}' in reasoning:
+                    this_score += 3.0
+
+                if solution and f'不可以报考{zy}专业' == solution.strip():
+                    this_score += 5.0
 
             if s >= min_score:
-                for i in ['大于', '高于', '能', '可以']:
-                    if i in response and '不能' not in response and '不可以' not in response:
-                        this_score += 1.0
+                if reasoning and f'{s}>{min_score}' in reasoning:
+                    this_score += 3.0
+
+                if solution and f'可以报考{zy}专业' == solution.strip():
+                    this_score += 5.0
 
             scores.append(this_score)
 
@@ -196,28 +196,29 @@ class MyReward:
         for completion, info_ in zip(completions, info):
 
             response = completion[0]["content"]
+            reasoning, solution = self.extract_reasoning_solution(response)
 
             r = info_.get("rank", 0)
             e = info_.get("detail", {})
 
             min_rank = e.get('最低位次号', 0)
+            zy = e.get("专业", '')
 
             this_score = 0
 
-            # 相关
-            for i in ['最低位次号', min_rank]:
-                if str(i) in response:
-                    this_score += 1.0
-
             if r > min_rank:
-                for i in ['大于', '高于', '不能', '不可以']: 
-                    if i in response:
-                        this_score += 1.0
+                if reasoning and f'{r}>{min_rank}' in reasoning:
+                    this_score += 3.0
 
-            if r < min_rank:
-                for i in ['小于', '低于', '能', '可以']:
-                    if i in response and '不能' not in response and '不可以' not in response:
-                        this_score += 1.0
+                if solution and f'不可以报考{zy}专业' == solution.strip():
+                    this_score += 5.0
+
+            if r <= min_rank:
+                if reasoning and f'{r}<{min_rank}' in reasoning:
+                    this_score += 3.0
+
+                if solution and f'可以报考{zy}专业' == solution.strip():
+                    this_score += 5.0
 
             scores.append(this_score)
 
