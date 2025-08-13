@@ -91,7 +91,7 @@ class MyGRPOTrainer(BaseTrainer):
             logging_steps = 1,
             per_device_train_batch_size = 1,
             gradient_accumulation_steps = 1, # Increase to 4 for smoother training
-            num_generations = 4, # Decrease if out of memory
+            num_generations = 16, # Decrease if out of memory
             max_prompt_length = self.max_prompt_length,
             max_completion_length = self.max_completion_length,
             num_train_epochs = args.step, # Set to 1 for a full training run
