@@ -11,4 +11,8 @@ details pre {
   margin-left: 30px;
 }
 
+details > :not(summary) {
+  margin-left: 30px;  /* 让展开内容整体缩进20px */
+}
+
 
