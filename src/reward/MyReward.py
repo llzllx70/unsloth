@@ -252,3 +252,11 @@ class MyReward:
             self.format_score,
             self.task_reward
         ]
+
+
+class ThisReward(MyReward):
+    
+    def __init__(self, tokenizer):
+        super().__init__(tokenizer=tokenizer)
+
+
