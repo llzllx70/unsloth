@@ -8,8 +8,12 @@
     - [下一步计划](#下一步计划)
   - [奖励函数： 结构 + solution 完全匹配](#奖励函数-结构--solution-完全匹配)
     - [训练结果](#训练结果-1)
+    - [当前主要问题](#当前主要问题)
     - [下一步计划](#下一步计划-1)
-- [NL2SQl](#nl2sql)
+- [Continue pretrain](#continue-pretrain)
+  - [创建模型时有变化](#创建模型时有变化)
+  - [保存模型时有变化](#保存模型时有变化)
+  - [模型细节有变化](#模型细节有变化)
 
 # 在SFT训练的基础上进行GRPO训练
 
@@ -72,6 +76,8 @@ Then, provide your solution between <SOLUTION></SOLUTION><|endoftext|>
 - solution 完全匹配，但是都为: 可以报考家政学专业, 没有不可以报考的
 - 位次和分数混淆
 - 原本reward中设计的 > 和 < 没有出现
+- 可能是正向奖励太过明显，抑制了探索
+
 
 ```
 我考了506分，能否报考家政学专业？
@@ -79,20 +85,83 @@ Then, provide your solution between <SOLUTION></SOLUTION><|endoftext|>
 <REASONING>好的，针对我考了506分，能否报考家政学专业？的问题，可以报考家政学专业的最低位次号为163214。</REASONING><SOLUTION>可以报考家政学专业</SOLUTION>
 ```
 
+### 当前主要问题
+
+- SFT阶段语料太少，没有学习到回答的范式
+- 
+
 ### 下一步计划
 - 考虑使用数据蒸馏的方式(DeepSeek返回的数据太长，不太合适)
+- 考虑ReSearch 或 Search-R1，边推理边搜索的思路，当前的热门方向
+- 思路转换，推理提出结果相对复杂，小模型可能搞不定，但是可以训练小模型用于检索
 
 
-# NL2SQl
 
-<details open> 
+# Continue pretrain
 
-<summary> 需求描述 </summary>
+## 创建模型时有变化
 
-- 客户提供excel表，包含多年的招生信息，有年份，省份，分数，位次号，类别，专业 6个维度
-- 用户输入自然语言，需要转换为查询语言，能够对上述的一个或者多个维度进行查询
-- 给出具体技术实现
+> 多加了"embed_tokens", "lm_head" 
 
-<summary> 需求描述 </summary>
+```py
+model = FastLanguageModel.get_peft_model(
+    model,
+    r = 128, # Choose any number > 0 ! Suggested 8, 16, 32, 64, 128
+    target_modules = [
+        "q_proj", "k_proj", "v_proj", "o_proj", 
+        "gate_proj", "up_proj", "down_proj", 
+        "embed_tokens", "lm_head", # Add for continual pretraining
+    ],   
+```
 
-</details>
+## 保存模型时有变化
+
+> 全量保存, 不是只保存为lora
+
+```py
+model.save_pretrained('saved/pretrain/Qwen3-4B-Base')
+tokenizer.save_pretrained('saved/pretrain/Qwen3-4B-Base')
+```
+
+## 模型细节有变化
+
+> [!TIP] 
+> 由于添加了embed_tokens, lm_head, 模型多了一层ModulesToSaveWrapper, 可以理解为pretrained需要更新词表，或者说是全量参数
+
+```py
+pretrained
+
+(Pdb) model.save_lora('saved/')
+*** AttributeError: 'Qwen3ForCausalLM' object has no attribute 'save_lora'
+(Pdb) model
+PeftModelForCausalLM(
+  (base_model): LoraModel(
+    (model): Qwen3ForCausalLM(
+      (model): Qwen3Model(
+        (embed_tokens): ModulesToSaveWrapper(
+          (original_module): Embedding(151936, 2560)
+          (modules_to_save): ModuleDict(
+            (default): Embedding(151936, 2560)
+          )
+        )
+      (lm_head): ModulesToSaveWrapper(
+        (original_module): Linear(in_features=2560, out_features=151936, bias=False)
+        (modules_to_save): ModuleDict(
+          (default): Linear(in_features=2560, out_features=151936, bias=False)
+        )
+      )
+    )
+  )
+)
+```
+
+```py
+sft
+(Pdb) self.model
+PeftModelForCausalLM(
+  (base_model): LoraModel(
+    (model): Qwen3ForCausalLM(
+      (model): Qwen3Model(
+        (embed_tokens): Embedding(151936, 2560, padding_idx=151654)
+        (lm_head): Linear(in_features=2560, out_features=151936, bias=False)
+```

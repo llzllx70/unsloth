@@ -92,6 +92,9 @@ class MySFTTrainer(BaseTrainer):
         # self.test()
 
         trainer.train()
+
+        breakpoint()
+        print(type(self.model))
         self.model.save_lora(self.saved_lora)
 
         self.test(use_lora='1')
