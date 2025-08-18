@@ -186,3 +186,4 @@ sft_saved_lora_Qwen3-4B-Base/
 data/*
 saved/*
 merged/*
+src/nl2sql/secret.py
