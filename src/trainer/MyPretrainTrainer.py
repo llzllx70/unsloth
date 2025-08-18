@@ -74,7 +74,7 @@ class MyPretrainTrainer(BaseTrainer):
                 gradient_accumulation_steps = 8,
 
                 warmup_ratio = 0.1,
-                num_train_epochs = 1,
+                num_train_epochs = args.step,
 
                 learning_rate = 5e-5,
                 embedding_learning_rate = 5e-6,
