@@ -27,7 +27,7 @@ class MyPretrainTrainer(BaseTrainer):
 
         self.max_seq_length = 2048 # Choose any! We auto support RoPE Scaling internally!
         self.dtype = None # None for auto detection. Float16 for Tesla T4, V100, Bfloat16 for Ampere+
-        self.load_in_4bit = True # Use 4bit quantization to reduce memory usage. Can be False.
+        self.load_in_4bit = False # Use 4bit quantization to reduce memory usage. Can be False.
 
         self.max_print_width = 100
 
@@ -91,20 +91,15 @@ class MyPretrainTrainer(BaseTrainer):
             ),
         )
 
-        self.test()
-
         trainer_stats = trainer.train()
-
         self.save()
-
-        self.test()
 
     def save(self):
 
         print(type(self.model))
 
-        self.model.save_pretrained(pretrain_merged_model)
-        self.tokenizer.save_pretrained(pretrain_merged_model)
+        self.model.save_pretrained(pretrain_saved_model)
+        self.tokenizer.save_pretrained(pretrain_saved_model)
 
     def do_infer(self, e):
         

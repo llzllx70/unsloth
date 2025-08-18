@@ -47,11 +47,11 @@ class PretrainInfer(BaseInfer):
 
         for idx, e in enumerate(self.dataset.test_dataset):
 
-            text = e["text"]
+            text = e["prefix"]
                     
             output = self.model.generate(
                 **self.tokenizer(text, return_tensors="pt").to("cuda"),
-                max_new_tokens=256,
+                max_new_tokens=128,
                 # do_sample=True,
                 # temperature=0.01,
                 use_cache=True

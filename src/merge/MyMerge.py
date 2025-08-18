@@ -16,7 +16,12 @@ class MyMerge:
     
     def __init__(self):
 
-        if args.task == 'sft':
+        if args.task == 'pretrain':
+            self.base_model = f"models/{args.model}"
+            self.saved_lora = f"saved/{args.task}/{args.model}"
+            self.merged_model = f"merged/{args.task}/{args.model}"
+
+        elif args.task == 'sft':
             self.base_model = f"models/{args.model}"
             self.saved_lora = f"saved/sft/{args.model}"
             self.merged_model = f"merged/sft/{args.model}"

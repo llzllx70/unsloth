@@ -44,23 +44,13 @@ class SFTDataset(BaseDataset):
             {"role": "assistant", "content": final_prompt},
         ]
 
-    
-    def row_info(self, e):
-
-        return (
-            f"浙江省2024年本科{e['专业']}专业的录取计划数为{e['计划数']}人，"
-            f"录取数为{e['录取数']}人，省控线为{e['省控线']}分。"
-            f"最高分为{e['最高分']}分，最低分为{e['最低分']}分，"
-            f"平均分为{e['平均分']}分，最低位次号为{e['最低位次号']}。"
-        )
-
     def add_whole_row_dataset(self, dataset_):
 
         def f(e):
             problem = f'浙江省2024年本科{e["专业"]}录取情况'
 
             return {
-                "expected_answer": self.row_info(e),
+                "expected_answer": self.row_info(prefix=problem, e=e),
                 "problem": problem,
                 "generated_solution": f'好的，针对{problem}，我将从{list(dict(e).keys())}这些方面为您提供相关信息。',
             }

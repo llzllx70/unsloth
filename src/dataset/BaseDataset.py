@@ -21,6 +21,14 @@ class BaseDataset:
         self.train_dataset = self.loading_dataset(self.train_file)
         self.test_dataset = self.loading_dataset(self.test_file)
 
+    def row_info(self, prefix, e):
+
+        return (
+            f"{prefix}: 录取计划数为{e['计划数']}人，"
+            f"录取数为{e['录取数']}人，省控线为{e['省控线']}分。"
+            f"最高分为{e['最高分']}分，最低分为{e['最低分']}分，"
+            f"平均分为{e['平均分']}分，最低位次号为{e['最低位次号']}。"
+        )
 
     def loading_dataset(self, jsonl_):
 

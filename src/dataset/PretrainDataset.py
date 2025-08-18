@@ -6,17 +6,20 @@ class PretrainDataset(BaseDataset):
     def __init__(self, tokenizer):
         super().__init__(tokenizer=tokenizer, flag="pretrain")
 
-    def formatting_prompts_func(self, examples):
-        return { "text" : [example + self.tokenizer.eos_token for example in examples["text"]] }
+    def add_whole_row_dataset(self, dataset_):
 
-    def trunc(self, e):
-        return { "text" : " ".join(e["text"].split()[:10]) }
+        def f(e):
+            prefix = f'浙江省2024年本科{e["专业"]}录取情况'
+            return {
+                "text": self.row_info(prefix, e),
+                "prefix": prefix
+            }
+
+        return dataset_.map(f, remove_columns=dataset_.column_names)
 
     def build_dataset(self):
 
-        ds = load_dataset("roneneldan/TinyStories", split = "train[:25]")
-        tr = ds.map(self.formatting_prompts_func, batched = True,)
-        te = tr.map(self.trunc)
+        tr = self.add_whole_row_dataset(dataset_=self.origin_dataset_)
 
         self.save([tr], self.train_file)
-        self.save([te], self.test_file)
+        self.save([tr], self.test_file)

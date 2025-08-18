@@ -3,6 +3,7 @@
 model_name = "Qwen3-4B-Base"
 model_dir = f'models/{model_name}'
 
+pretrain_saved_model = f'saved/pretrain/{model_name}'
 sft_saved_lora = f'saved/sft/{model_name}'
 grpo_saved_lora = f'saved/grpo/{model_name}'
 
