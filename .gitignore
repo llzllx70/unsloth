@@ -187,3 +187,4 @@ data/*
 saved/*
 merged/*
 src/nl2sql/secret.py
+_unsloth_temporary_saved_buffers/*

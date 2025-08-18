@@ -12,6 +12,7 @@ class BaseDataset:
     def __init__(self, tokenizer, flag):
 
         self.tokenizer = tokenizer
+
         self.train_file = f"data/{flag}_train.jsonl"
         self.test_file = f"data/{flag}_test.jsonl"
 
@@ -19,6 +20,7 @@ class BaseDataset:
 
         self.train_dataset = self.loading_dataset(self.train_file)
         self.test_dataset = self.loading_dataset(self.test_file)
+
 
     def loading_dataset(self, jsonl_):
 
@@ -38,5 +40,7 @@ class BaseDataset:
         dataset_ = concatenate_datasets(l_dataset_)
         dataset_.to_json(jsonl_, orient="records", lines=True, force_ascii=False)
 
+    def prepare_dataset(self, dataset_):
+        return dataset_
 
 

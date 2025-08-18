@@ -1,0 +1,5 @@
+
+#!/bin/bash
+
+
+nohup python -m src.trainer.MyPretrainTrainer --task train --model Qwen3-4B-Base --step 50 > train.out 2>&1 &
