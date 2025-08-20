@@ -26,14 +26,14 @@ class MySFTTrainer(BaseTrainer):
         self.saved_lora = sft_saved_lora
         
         self.max_seq_length = 2048 # Can increase for longer reasoning traces
-        self.lora_rank = 32 # Larger rank = smarter, but slower
+        self.lora_rank = 128 # Larger rank = smarter, but slower
 
         self.maximum_length = 201
         self.max_prompt_length = self.maximum_length + 1 # + 1 just in case!
         self.max_completion_length = self.max_seq_length - self.max_prompt_length
 
         self.model, self.tokenizer = FastLanguageModel.from_pretrained(
-            model_name = f"models/{args.model}",
+            model_name = pretrain_merged_model,
             max_seq_length = self.max_seq_length,
             load_in_4bit = False, # False for LoRA 16bit
             fast_inference = True, # Enable vLLM fast inference
@@ -79,7 +79,7 @@ class MySFTTrainer(BaseTrainer):
                 gradient_accumulation_steps = 1, # Use GA to mimic batch size!
                 warmup_steps = 5,
                 num_train_epochs = args.step, # Set this for 1 full training run.
-                learning_rate = 2e-4, # Reduce to 2e-5 for long training runs
+                learning_rate = 2e-5, # Reduce to 2e-5 for long training runs
                 logging_steps = 5,
                 optim = "adamw_8bit",
                 weight_decay = 0.01,
@@ -93,7 +93,7 @@ class MySFTTrainer(BaseTrainer):
 
         trainer.train()
 
-        breakpoint()
+        # breakpoint()
         print(type(self.model))
         self.model.save_lora(self.saved_lora)
 

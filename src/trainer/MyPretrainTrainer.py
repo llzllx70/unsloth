@@ -98,8 +98,8 @@ class MyPretrainTrainer(BaseTrainer):
 
         print(type(self.model))
 
-        self.model.save_pretrained(pretrain_saved_model)
-        self.tokenizer.save_pretrained(pretrain_saved_model)
+        self.model.save_pretrained(pretrain_saved_lora)
+        self.tokenizer.save_pretrained(pretrain_saved_lora)
 
     def do_infer(self, e):
         

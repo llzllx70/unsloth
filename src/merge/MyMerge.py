@@ -5,6 +5,8 @@ import torch
 
 import argparse
 
+from src.constant.Config import *
+
 parser = argparse.ArgumentParser(description="示例：添加命令行参数")
 parser.add_argument("--task", type=str, required=False, help="test")
 parser.add_argument("--model", type=str, required=False, help="flag")
@@ -17,19 +19,19 @@ class MyMerge:
     def __init__(self):
 
         if args.task == 'pretrain':
-            self.base_model = f"models/{args.model}"
-            self.saved_lora = f"saved/{args.task}/{args.model}"
-            self.merged_model = f"merged/{args.task}/{args.model}"
+            self.base_model = pretrain_base_model
+            self.saved_lora = pretrain_saved_lora
+            self.merged_model = pretrain_merged_model
 
         elif args.task == 'sft':
-            self.base_model = f"models/{args.model}"
-            self.saved_lora = f"saved/sft/{args.model}"
-            self.merged_model = f"merged/sft/{args.model}"
+            self.base_model = pretrain_merged_model
+            self.saved_lora = sft_saved_lora
+            self.merged_model = sft_merged_model
 
         elif args.task == 'grpo':
-            self.base_model = f"merged/sft/{args.model}"
-            self.saved_lora = f"saved/grpo/{args.model}"
-            self.merged_model = f"merged/grpo/{args.model}"
+            self.base_model = sft_merged_model
+            self.saved_lora = grpo_saved_lora
+            self.merged_model = grpo_merged_model
 
     def do_merge(self):
 

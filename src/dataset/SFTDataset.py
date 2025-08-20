@@ -59,15 +59,15 @@ class SFTDataset(BaseDataset):
 
             d = random.choice(fields)
 
-            prefix = f'浙江省2024年本科{e["专业"]}专业的{d}'
-            problem = f'{prefix}是多少？'
-            expected_answer = f'{prefix}是{e[d]}'
+            prefix = f'浙江省2024年本科{e["专业"]}'
+            problem = f'{prefix}的{d}是多少？'
+            expected_answer = f'{e[d]}'
 
             return (
                 {
                     "expected_answer": expected_answer,
                     "problem": problem,
-                    "reasoning": f'好的，针对{problem}的问题，可以搜索到如下相关信息{self.row_info(e)}',
+                    "reasoning": f'好的，针对{problem}的问题，可以搜索到如下相关信息: {self.row_info(f'{prefix}录取情况', e)}',
                 }
             )
 
@@ -79,10 +79,10 @@ class SFTDataset(BaseDataset):
 
     def build_dataset(self):
 
-        tr1, te1 = self.add_whole_row_dataset(dataset_=self.origin_dataset_)
+        # tr1, te1 = self.add_whole_row_dataset(dataset_=self.origin_dataset_)
         tr2, te2 = self.add_one_dimension_dataset(dataset_=self.origin_dataset_)
 
-        self.save([tr1, te1, tr2], self.train_file)
+        self.save([tr2], self.train_file)
         self.save([te2], self.test_file)
 
     def prepare_dataset(self, dataset_):
