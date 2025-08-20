@@ -24,18 +24,12 @@ class SFTDataset(BaseDataset):
         """
         expected_answer = x["expected_answer"]
         problem = x["problem"]
-
-        # Remove generated <think> and </think>
-        thoughts = x["generated_solution"]
-        thoughts = thoughts.replace("<think>", "").replace("</think>", "")
+        reasoning = x["reasoning"].strip()
         
-        # Strip newlines on left and right
-        thoughts = thoughts.strip()
-        
-        # Add our custom formatting
         final_prompt = (
-            reasoning_start + thoughts + reasoning_end +
-            solution_start + expected_answer + solution_end
+            f'{reasoning_start}{reasoning}{reasoning_end}'
+            '\n'
+            f'{solution_start}{expected_answer}{solution_end}'
         )
 
         return [
@@ -52,7 +46,7 @@ class SFTDataset(BaseDataset):
             return {
                 "expected_answer": self.row_info(prefix=problem, e=e),
                 "problem": problem,
-                "generated_solution": f'好的，针对{problem}，我将从{list(dict(e).keys())}这些方面为您提供相关信息。',
+                "reasoning": f'好的，针对{problem}，我将从{list(dict(e).keys())}这些方面为您提供相关信息。',
             }
 
         dataset_1 = dataset_.map(f, remove_columns=dataset_.column_names)
@@ -73,7 +67,7 @@ class SFTDataset(BaseDataset):
                 {
                     "expected_answer": expected_answer,
                     "problem": problem,
-                    "generated_solution": f'好的，针对{problem}的问题，可以搜索到如下相关信息{self.row_info(e)}',
+                    "reasoning": f'好的，针对{problem}的问题，可以搜索到如下相关信息{self.row_info(e)}',
                 }
             )
 
@@ -94,7 +88,7 @@ class SFTDataset(BaseDataset):
     def prepare_dataset(self, dataset_):
 
         dataset_ = dataset_.to_pandas()[
-            ["expected_answer", "problem", "generated_solution"]
+            ["expected_answer", "problem", "reasoning"]
         ]
 
         # pandas to JSON
