@@ -10,7 +10,11 @@ Think about the problem and provide your working out.
 Place your reason between {reasoning_start} and {reasoning_end}.
 Then, provide your solution between {solution_start}{solution_end}"""
 
-sft_system_prompt = "你是树人大学招生专家"
+# sft_system_prompt = "你是树人大学招生专家"
+
+sft_system_prompt = \
+f"""先将专业信息置入{reasoning_start}和{reasoning_end}内，
+再将答案置入{solution_start}和{solution_end}内"""
 
 system_prompt_ok = \
 f"""You are given a problem.

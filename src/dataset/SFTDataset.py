@@ -33,7 +33,7 @@ class SFTDataset(BaseDataset):
         )
 
         return [
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": sft_system_prompt},
             {"role": "user", "content": problem},
             {"role": "assistant", "content": final_prompt},
         ]
@@ -58,20 +58,19 @@ class SFTDataset(BaseDataset):
         def f(e):
 
             d = random.choice(fields)
-
-            prefix = f'浙江省2024年本科{e["专业"]}'
+            zy = e['专业']
+            prefix = f'浙江省2024年本科{zy}'
             problem = f'{prefix}的{d}是多少？'
-            expected_answer = f'{e[d]}'
 
             return (
                 {
-                    "expected_answer": expected_answer,
+                    "expected_answer": e[d],
                     "problem": problem,
-                    "reasoning": f'好的，针对{problem}的问题，可以搜索到如下相关信息: {self.row_info(f'{prefix}录取情况', e)}',
+                    "reasoning": self.row_info(f'{prefix}录取情况', e)
                 }
             )
 
-        fields = ["计划数", "录取数", "省控线", "最高分", "最低分", "平均分", "最低位次号"]
+        fields = ["计划数", "录取数", "最高分", "最低分", "平均分", "最低位次号"]
 
         dataset_2 = dataset_.map(f, remove_columns=dataset_.column_names)
 
