@@ -15,10 +15,11 @@ def main():
     engine = ExcelQueryEngine(args.excel)
     parser = LLMQueryParser()
 
-    query = '江苏物理生物地理478分希望大吗'
+    # query = '2025江苏物理生物地理478分希望大吗'
+    query = '2024江苏物理最低分'
     
     pandas_query = parser.parse(query)
-    click.echo(f"👉 解析得到的 pandas 查询语句: {pandas_query}")
+    click.echo(f"{query} -> {pandas_query}")
 
     try:
         result = engine.run_query(pandas_query)
