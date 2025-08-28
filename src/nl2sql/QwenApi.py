@@ -6,11 +6,23 @@ from src.nl2sql.secret import qwen_key
 
 dashscope.api_key = qwen_key
 
-class LLMQueryParser:
+class QwenApi:
+
     def __init__(self, model="qwen-max"):
         self.model_name = 'qwen-max'
 
-    def parse(self, query: str) -> str:
+    def call(self, messages):
+
+        response = dashscope.Generation.call(
+            model=self.model_name,
+            messages=messages,
+            seed=random.randint(1, 10000),
+            result_format='message',  # 将返回结果格式设置为 message
+        )
+
+        return response.output.choices[0].message.content
+
+    def nl2sql(self, query: str) -> str:
 
         prompt = f"""
         你是一个助手，用户给出自然语言查询，你需要将它转为 pandas DataFrame.query 语句。
@@ -37,11 +49,24 @@ class LLMQueryParser:
             {"role": "user", "content": prompt}
         ]
 
-        response = dashscope.Generation.call(
-            model=self.model_name,
-            messages=messages,
-            seed=random.randint(1, 10000),
-            result_format='message',  # 将返回结果格式设置为 message
-        )
+        return self.call(messages)
 
-        return response.output.choices[0].message.content
+    def answer(self, query, md):
+
+        prompt_ = f"""
+        已知信息:
+        1. 今年为2025年
+        2. 历年报考信息:【{md}】
+
+        依据上面的信息回答用户报考问题：【{query}】 
+        要求如下： 
+        1. 将推理过程置入<REASONING>和</REASONING>内 
+        2. 再将答案置入 <SOLUTION>和</SOLUTION>内
+        """
+
+        messages = [
+            {"role": "system", "content": "你是一个高考报考助手。"},
+            {"role": "user", "content": prompt_}
+        ]
+
+        return self.call(messages)

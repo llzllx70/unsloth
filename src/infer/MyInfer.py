@@ -1,6 +1,6 @@
 
 from src.constant.Config import *
-from src.constant.Funs import set_tokenizer_chat_template
+from src.common.Funs import set_tokenizer_chat_template
 from src.dataset.PretrainDataset import PretrainDataset
 from src.dataset.SFTDataset import SFTDataset
 from src.dataset.GRPODataset import GRPODataset

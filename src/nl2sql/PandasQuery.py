@@ -1,7 +1,7 @@
 
 import pandas as pd
 
-class ExcelQueryEngine:
+class PandasEngine:
 
     def __init__(self, excel_path: str):
 

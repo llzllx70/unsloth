@@ -83,6 +83,3 @@ class GRPODataset(BaseDataset):
 
         self.save([tr1, tr2], self.train_file)
         self.save([te1, te2], self.test_file)
-
-    def prepare_dataset(self, dataset_):
-        return dataset_

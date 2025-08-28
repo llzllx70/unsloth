@@ -7,7 +7,7 @@ from src.prompt.MyPrompt import *
 from src.reward.MyReward import MyReward
 from src.trainer.BaseTrainer import BaseTrainer
 from src.dataset.SFTDataset import SFTDataset
-from src.constant.Funs import set_tokenizer_chat_template
+from src.common.Funs import set_tokenizer_chat_template
 from src.constant.Config import *
 
 import argparse

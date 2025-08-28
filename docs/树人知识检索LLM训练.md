@@ -39,8 +39,8 @@
       - [咨询类](#咨询类)
       - [建议类](#建议类)
     - [sft 语料的生成](#sft-语料的生成)
-  - [Search-R1](#search-r1)
-    - [训练LLM 如何生成查询](#训练llm-如何生成查询)
+- [Search-R1](#search-r1)
+  - [训练LLM 如何生成查询](#训练llm-如何生成查询)
 
 # 在SFT训练的基础上进行GRPO训练
 
@@ -358,9 +358,14 @@ lora rank: 32 -> 128
 
 使用NL2SQl的方式对用户输入进行分析，检索对应的信息，再调用LLM生成答案，以此组装SFT的训练语料
 
+- 读取用户输入.xlsx，取其中的输入信息列
+- 调用LLMQueryParser::nl2sql  
+- nl2sql -> pandas data -> LLmQueryParser::answer
+- 要求：LLM的返回是格式化的，利于后续GRPO的训练
 
-## Search-R1
 
-### 训练LLM 如何生成查询
+# Search-R1
+
+## 训练LLM 如何生成查询
 
 - 问题：基于verl 框架，资源不足

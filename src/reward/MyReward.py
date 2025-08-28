@@ -1,7 +1,5 @@
 
-import re
-
-from src.prompt.MyPrompt import *
+from src.common.MyRe import MyRe
 
 class MyReward:
 
@@ -12,46 +10,13 @@ class MyReward:
         else:
             self.eos_token = tokenizer.eos_token
 
-        self.format_re = self.format_re()
-
-    def reasoning_re(self):
-        
-        return re.compile(
-            r"<REASONING>(.*)</REASONING>",
-            flags=re.DOTALL  # 关键：允许 . 匹配换行
-        )
-
-    def solution_re(self):
-
-        return re.compile(
-            rf"{solution_start}(.*){solution_end}",
-            flags=re.DOTALL  # 关键：允许 . 匹配换行
-        )
+        self.re = MyRe()
 
     def score_print(self, scores, flag):
 
         print(f'\n=================score:{flag}=====================')
         print(f'{scores}')
 
-    def format_re(self):
-        
-        return re.compile(
-            r"<REASONING>(.*)</REASONING>\s*<SOLUTION>(.*)</SOLUTION>",
-            flags=re.DOTALL  # 关键：允许 . 匹配换行
-        )
-        
-    def match_reasoning(self, completions, **kwargs):
-        scores = []
-        for completion in completions:
-            score = 0
-            response = completion[0]["content"]
-            if self.format_re.search(response) is not None: 
-                score += 3.0
-            scores.append(score)
-
-        self.score_print(scores=scores,flag='1. match_format_exactly')
-        return scores
-    
     def start_with_reasoning_reward(self, completions, **kwargs):
 
         scores = []
@@ -85,31 +50,12 @@ class MyReward:
         self.score_print(scores=scores,flag='2. F1_reward')
         return scores
 
-    def extract_reasoning_solution(self, response):
-
-        if not response.startswith("<REASONING>"):
-            response = "<REASONING>" + response
-
-        if self.format_re.search(response) is not None:
-
-            match = self.format_re.search(response)
-            reasoning = match.group(1).strip()
-            solution = match.group(2).strip()
-
-            return reasoning, solution
-
-        return None, None
-
     def check_answer(self, prompts, completions, answer, **kwargs):
 
         question = prompts[0][-1]["content"]
         responses = [completion[0]["content"] for completion in completions]
 
-        extracted_responses = [
-            guess.group(1)
-            if (guess := self.format_re.search(r)) is not None else None \
-            for r in responses
-        ]
+        extracted_responses = [self.re.extract_solution(r) for r in responses]
 
         print(extracted_responses)
 
@@ -139,7 +85,7 @@ class MyReward:
 
             response = completion[0]["content"]
 
-            reasoning, solution = self.extract_reasoning_solution(response)
+            reasoning, solution = self.re.extract_reasoning_solution(response)
 
             score = 0
 
@@ -161,7 +107,7 @@ class MyReward:
 
             response = completion[0]["content"]
 
-            reasoning, solution = self.extract_reasoning_solution(response)
+            reasoning, solution = self.re.extract_reasoning_solution(response)
 
             s = info_.get("score", 0)
             e = info_.get("detail", {})
@@ -196,7 +142,7 @@ class MyReward:
         for completion, info_ in zip(completions, info):
 
             response = completion[0]["content"]
-            reasoning, solution = self.extract_reasoning_solution(response)
+            reasoning, solution = self.re.extract_reasoning_solution(response)
 
             r = info_.get("rank", 0)
             e = info_.get("detail", {})

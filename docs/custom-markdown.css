@@ -16,4 +16,14 @@ details > :not(summary) {
   margin-left: 30px;  /* 让展开内容整体缩进20px */
 }
 
+/* 针对 diff 代码块 */
+code.language-diff .hljs-addition {
+  color: #FCAF50;        /* 绿色文字 */
+  background: transparent !important;  /* 去掉背景 */
+}
+
+code.language-diff .hljs-deletion {
+  color: #F44336;        /* 红色文字 */
+  background: transparent !important;  /* 去掉背景 */
+}
 
