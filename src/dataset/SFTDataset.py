@@ -46,7 +46,7 @@ class SFTDataset(BaseDataset):
             return {
                 "expected_answer": self.row_info(prefix=problem, e=e),
                 "problem": problem,
-                "reasoning": f'好的，针对{problem}，我将从{list(dict(e).keys())}这些方面为您提供相关信息。',
+                "reasoning": f'好的，针对{problem}，我将从{self.origin_columes}这些方面为您提供相关信息。',
             }
 
         dataset_1 = dataset_.map(f, remove_columns=dataset_.column_names)
@@ -78,7 +78,6 @@ class SFTDataset(BaseDataset):
 
     def build_dataset(self):
 
-        # tr1, te1 = self.add_whole_row_dataset(dataset_=self.origin_dataset_)
         tr2, te2 = self.add_one_dimension_dataset(dataset_=self.origin_dataset_)
 
         self.save([tr2], self.train_file)

@@ -9,17 +9,16 @@ class PretrainDataset(BaseDataset):
     def add_whole_row_dataset(self, dataset_):
 
         def f(e):
-            prefix = f'浙江省2024年本科{e["专业"]}录取情况'
             return {
-                "text": self.row_info(prefix, e),
-                "prefix": prefix
+                "text": self.row_info(e),
+                "prefix": f'{e["年份"]}年{e["省份"]}{e["层次"]}{e["类别"]}{e["专业"]}录取情况：'
             }
 
         return dataset_.map(f, remove_columns=dataset_.column_names)
 
     def build_dataset(self):
 
-        tr = self.add_whole_row_dataset(dataset_=self.origin_dataset_)
+        tr = self.add_whole_row_dataset(dataset_=self.origin_dataset)
 
         self.save([tr], self.train_file)
         self.save([tr], self.test_file)
