@@ -3,7 +3,11 @@ from src.dataset.BaseDataset import *
 class SFTDataset(BaseDataset):
     
     def __init__(self, tokenizer):
-        super().__init__(tokenizer=tokenizer, flag="sft")
+        super().__init__(
+            tokenizer=tokenizer, 
+            flag="sft", 
+            origin_dataset_file="data/sft_data.xlsx"
+        )
 
     def kn_message(self, x):
         """
@@ -57,28 +61,25 @@ class SFTDataset(BaseDataset):
 
         def f(e):
 
-            d = random.choice(fields)
-            zy = e['专业']
-            prefix = f'浙江省2024年本科{zy}'
-            problem = f'{prefix}的{d}是多少？'
+            if e["solution"] is None or e["query"] is None or e["reasoning"] is None:
+                return None
 
             return (
                 {
-                    "expected_answer": e[d],
-                    "problem": problem,
-                    "reasoning": self.row_info(f'{prefix}录取情况', e)
+                    "expected_answer": e["solution"],
+                    "problem": e["query"],
+                    "reasoning": e["reasoning"]
                 }
             )
 
-        fields = ["计划数", "录取数", "最高分", "最低分", "平均分", "最低位次号"]
-
         dataset_2 = dataset_.map(f, remove_columns=dataset_.column_names)
+        dataset_filtered = dataset_2.filter(lambda x: x is not None)
 
-        return self.split(dataset_2)
+        return self.split(dataset_filtered)
 
     def build_dataset(self):
 
-        tr2, te2 = self.add_one_dimension_dataset(dataset_=self.origin_dataset_)
+        tr2, te2 = self.add_one_dimension_dataset(dataset_=self.origin_dataset)
 
         self.save([tr2], self.train_file)
         self.save([te2], self.test_file)

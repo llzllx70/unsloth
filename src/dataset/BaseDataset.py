@@ -9,11 +9,11 @@ from src.prompt.MyPrompt import *
 
 class BaseDataset:
     
-    def __init__(self, tokenizer, flag):
+    def __init__(self, tokenizer, flag, origin_dataset_file):
 
         self.tokenizer = tokenizer
 
-        self.origin_dataset_file = "data/2022_23_24年浙江树人学院各省份录取情况.xlsx"
+        self.origin_dataset_file = origin_dataset_file
 
         self.train_file = f"data/{flag}_train.jsonl"
         self.test_file = f"data/{flag}_test.jsonl"
@@ -33,8 +33,14 @@ class BaseDataset:
     def origin_columes(self):
         return self.origin_dataset.column_names
         
-    def row_info(self, e):
-        return '，'.join(f"{k}为{v}" for k, v in e.items())
+    def row_info(self, prefix, e):
+
+        return (
+            f"{prefix}: 录取计划数为{e['计划数']}人，"
+            f"录取数为{e['录取数']}人，省控线为{e['省控线']}分。"
+            f"最高分为{e['最高分']}分，最低分为{e['最低分']}分，"
+            f"平均分为{e['平均分']}分，最低位次号为{e['最低位次号']}。"
+        )
 
     def loading_dataset(self, jsonl_):
 
