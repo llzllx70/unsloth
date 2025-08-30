@@ -363,6 +363,10 @@ lora rank: 32 -> 128
 - nl2sql -> pandas data -> LLmQueryParser::answer
 - 要求：LLM的返回是格式化的，利于后续GRPO的训练
 
+```diff
++ 从sft训练结果来看，再对照训练语料，可知在调用qwen-max 生成的sft训练语料不太好，需要做针对性的筛选, 比如，省份，年份等，导致回答不准，qwen-max 的prompt要进一步的确认
+```
+
 
 # Search-R1
 

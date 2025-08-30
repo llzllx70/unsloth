@@ -37,7 +37,7 @@ class SFTDataset(BaseDataset):
         )
 
         return [
-            {"role": "system", "content": sft_system_prompt},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": problem},
             {"role": "assistant", "content": final_prompt},
         ]
