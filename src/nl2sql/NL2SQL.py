@@ -53,21 +53,21 @@ class NL2SQL:
                     r = self.qwen_api.answer(q, md)
                     reasoning, solution = self.re.extract_reasoning_solution(r)
 
-                    click.echo(f"{q} ok")
-                    return (q, reasoning, solution)
+                    click.echo(f"{q} -- {sql} ok")
+                    return (q, sql, result, reasoning, solution)
 
                 else:
-                    click.echo(f"{q} 没有匹配结果")
-                    return None
+                    click.echo(f"{q} -- {sql} none")
+                    return (q, sql, None, None, None)
 
             except Exception as e:
-                click.echo(f"{q} 执行出错: {e}")
-                return None
+                click.echo(f"{q} -- {sql} error")
+                return (q, sql, None, None, None)
 
         with ThreadPoolExecutor(max_workers=10) as executor:
-            results = list(filter(None, executor.map(f, inputs)))
+            results = list(executor.map(f, inputs))
 
-        df = pd.DataFrame(results, columns=['query', 'reasoning', 'solution'])
+        df = pd.DataFrame(results, columns=['query', 'sql', 'result', 'reasoning', 'solution'])
         df.to_excel('data/sft_data.xlsx', index=False)
 
 
