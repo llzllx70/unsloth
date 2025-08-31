@@ -75,7 +75,7 @@ class SFTDataset(BaseDataset):
         dataset_2 = dataset_.map(f, remove_columns=dataset_.column_names)
         dataset_filtered = dataset_2.filter(lambda x: x is not None)
 
-        return self.split(dataset_filtered)
+        return self.split(dataset_filtered, test_size=0.1)
 
     def build_dataset(self):
 
