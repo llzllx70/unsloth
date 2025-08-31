@@ -13,7 +13,7 @@ class PretrainDataset(BaseDataset):
     def add_whole_row_dataset(self, dataset_):
 
         def f(e):
-            prefix = f'{e["年份"]}年{e["省份"]}{e["层次"]}{e["类别"]}{e["专业"]}录取情况：'
+            prefix = f'浙江树人学院{e["年份"]}年{e["省份"]}{e["层次"]}{e["类别"]}{e["专业"]}录取情况：'
             return {
                 "text": self.row_info(prefix, e),
                 "prefix": prefix
