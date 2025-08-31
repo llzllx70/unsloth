@@ -48,9 +48,9 @@ class SFTDataset(BaseDataset):
             problem = f'浙江省2024年本科{e["专业"]}录取情况'
 
             return {
-                "expected_answer": self.row_info(prefix=problem, e=e),
                 "problem": problem,
                 "reasoning": f'好的，针对{problem}，我将从{self.origin_columes}这些方面为您提供相关信息。',
+                "expected_answer": self.row_info(prefix=problem, e=e)
             }
 
         dataset_1 = dataset_.map(f, remove_columns=dataset_.column_names)
@@ -61,14 +61,14 @@ class SFTDataset(BaseDataset):
 
         def f(e):
 
-            if e["solution"] is None or e["query"] is None or e["reasoning"] is None:
+            if not e["solution"] or not e["query"] or not e["reasoning"]:
                 return None
 
             return (
                 {
-                    "expected_answer": e["solution"],
                     "problem": e["query"],
-                    "reasoning": e["reasoning"]
+                    "reasoning": e["reasoning"],
+                    "expected_answer": e["solution"]
                 }
             )
 
@@ -87,7 +87,7 @@ class SFTDataset(BaseDataset):
     def prepare_dataset(self, dataset_):
 
         dataset_ = dataset_.to_pandas()[
-            ["expected_answer", "problem", "reasoning"]
+            ["problem", "reasoning", "expected_answer"]
         ]
 
         # pandas to JSON
