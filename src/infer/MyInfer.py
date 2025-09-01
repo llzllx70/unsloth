@@ -15,25 +15,21 @@ from openpyxl.styles import Font, PatternFill, Alignment
 
 parser = argparse.ArgumentParser(description="示例：添加命令行参数")
 parser.add_argument("--task", type=str, required=False, help="test")
-parser.add_argument("--model", type=str, required=False, help="flag")
+parser.add_argument("--model", type=str, required=False, help="Qwen3-4B-Base")
 parser.add_argument("--step", type=int, required=False, help="flag")
 args = parser.parse_args()
 
 
 class BaseInfer:
     
-    def __init__(self, task='sft', model='Qwen3-4B-Base'):
-
-        self.task = task
-
-        merged_model = f'merged/{self.task}/{model}'
-        self.model = AutoModelForCausalLM.from_pretrained(merged_model, device_map="auto")
-        self.tokenizer = AutoTokenizer.from_pretrained(merged_model)
+    def __init__(self, model):
+        self.model = AutoModelForCausalLM.from_pretrained(model, device_map="auto")
+        self.tokenizer = AutoTokenizer.from_pretrained(model)
 
 class PretrainInfer(BaseInfer):
     
-    def __init__(self, task='sft', model='Qwen3-4B-Base'):
-        super().__init__(task, model)
+    def __init__(self):
+        super().__init__(pretrain_merged_model)
         self.dataset = PretrainDataset(self.tokenizer)
 
     def print(self, idx, input, output):
@@ -61,11 +57,17 @@ class PretrainInfer(BaseInfer):
 
             self.print(idx, text, output=output_text)
 
+class ForgetPretrainInfer(PretrainInfer):
+
+    def __init__(self):
+        BaseInfer.__init__(self, sft_merged_model)
+        self.dataset = PretrainDataset(self.tokenizer)
+
 
 class SFTInfer(BaseInfer):
     
-    def __init__(self, task='sft', model='Qwen3-4B-Base'):
-        super().__init__(task, model)
+    def __init__(self):
+        super().__init__(sft_merged_model)
         self.dataset = SFTDataset(self.tokenizer)
         set_tokenizer_chat_template(self.tokenizer)
 
@@ -73,7 +75,7 @@ class SFTInfer(BaseInfer):
 
         ret = []
 
-        for e in self.sft_dataset.test_dataset:
+        for e in self.dataset.test_dataset:
             text = self.tokenizer.apply_chat_template(
                 e["Messages"][:2],
                 tokenize=False,
@@ -101,8 +103,8 @@ class SFTInfer(BaseInfer):
 
 class GRPOInfer(BaseInfer):
     
-    def __init__(self, task='grpo', model='Qwen3-4B-Base'):
-        super().__init__(task, model)
+    def __init__(self):
+        super().__init__(grpo_merged_model)
         self.dataset = GRPODataset(self.tokenizer)
         set_tokenizer_chat_template(self.tokenizer)
 
@@ -110,7 +112,7 @@ class GRPOInfer(BaseInfer):
         
         ret = []
 
-        for item in self.grpo_dataset.test_dataset:
+        for item in self.dataset.test_dataset:
             
             text = self.tokenizer.apply_chat_template(
                 item['prompt'],
@@ -237,7 +239,13 @@ class CompareInfer:
 if __name__ == '__main__':
 
     if args.task == 'pretrain':
-        ret1 = PretrainInfer(task='pretrain', model=args.model).do_infer()
+        ret1 = PretrainInfer().do_infer()
+
+    elif args.task == 'forget_pretrain':
+        ret1 = ForgetPretrainInfer().do_infer()
+
+    elif args.task == 'sft':
+        ret1 = SFTInfer().do_infer()
 
     else:
         CompareInfer().do_infer()
