@@ -402,8 +402,11 @@ lora rank: 32 -> 128
 
 ### 如何改进, 防止遗忘
 
+- 具体问题：sft的指令跟随还没学会，反而pretrain学习到的知识还遗忘了
+- 是否可理解为sft跨度太大，pretrain 学习到19比18大1, 无法直接跳跃到sft学习19*18, 如果中途不学习18+19的话
+
 - step 降低 10 -> 3
-- learning_rate: 2e-5 -> 2e-6
+- learning_rate: 2e-5 -> 1e-5
 
 # Search-R1
 

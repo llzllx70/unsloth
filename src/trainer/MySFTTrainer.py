@@ -79,7 +79,7 @@ class MySFTTrainer(BaseTrainer):
                 gradient_accumulation_steps = 1, # Use GA to mimic batch size!
                 warmup_steps = 5,
                 num_train_epochs = args.step, # Set this for 1 full training run.
-                learning_rate = 2e-5, # Reduce to 2e-5 for long training runs
+                learning_rate = 1e-5, # Reduce to 2e-5 for long training runs
                 logging_steps = 5,
                 optim = "adamw_8bit",
                 weight_decay = 0.01,
