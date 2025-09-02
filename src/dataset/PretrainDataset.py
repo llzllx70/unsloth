@@ -93,12 +93,12 @@ class PretrainDataset(BaseDataset):
                 "prefix": input_text
             })
 
-        return Dataset.from_list(samples)
+        return self.split(Dataset.from_list(samples), test_size=0.05)
         
     def build_dataset(self):
 
         tr = self.add_whole_row_dataset(dataset_=self.origin_dataset)
-        others = self.other_tasks(self.origin_df)
+        tr1, te1 = self.other_tasks(self.origin_df)
 
-        self.save([tr, others], self.train_file)
-        self.save([tr, others], self.test_file)
+        self.save([tr, tr1], self.train_file)
+        self.save([te1], self.test_file)
