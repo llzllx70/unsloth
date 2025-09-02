@@ -57,7 +57,7 @@ class BaseDataset:
 
     def save(self, l_dataset_, jsonl_):
         
-        dataset_ = concatenate_datasets(l_dataset_)
+        dataset_ = concatenate_datasets(l_dataset_).shuffle(seed=42)
         dataset_.to_json(jsonl_, orient="records", lines=True, force_ascii=False)
 
     def prepare_dataset(self, dataset_):
