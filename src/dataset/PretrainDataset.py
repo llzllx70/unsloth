@@ -69,10 +69,11 @@ class PretrainDataset(BaseDataset):
                             f"平均分{row['平均分']}，最高分{row['最高分']}，录取数{row['录取数']}，省控线{row['省控线']}")
 
             elif task_type == "比较":
-                # 过滤同一年份、同一省份、且不同专业
+                # 过滤同一年份、同一省份、类别且不同专业
                 same_group = df[
                     (df["年份"] == row["年份"]) &
                     (df["省份"] == row["省份"]) &
+                    (df["类别"] == row["类别"]) &
                     (df["专业"] != row["专业"])
                 ]
                 
@@ -82,7 +83,7 @@ class PretrainDataset(BaseDataset):
                 
                 other_row = same_group.sample(1).iloc[0]
 
-                input_text = f"比较{row['年份']}年{row['省份']}{row['专业']}和{other_row['专业']}的最低分："
+                input_text = f"比较{row['年份']}年{row['省份']}{row['类别']}类{row['专业']}和{other_row['专业']}的最低分："
                 target_text = (
                     f"{row['专业']}最低分{row['最低分']}分，"
                     f"{other_row['专业']}最低分{other_row['最低分']}分。"
