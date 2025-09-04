@@ -131,6 +131,7 @@ class PretrainDataset(BaseDataset):
                 same_group = df[
                     (df["年份"] == row["年份"]) &
                     (df["省份"] == row["省份"]) &
+                    (df["层次"] == row["层次"]) &
                     (df["类别"] == row["类别"]) &
                     (df["专业"] != row["专业"])
                 ]
