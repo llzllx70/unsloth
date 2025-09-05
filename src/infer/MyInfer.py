@@ -47,7 +47,7 @@ class PretrainInfer(BaseInfer):
                     
             output = self.model.generate(
                 **self.tokenizer(text, return_tensors="pt").to("cuda"),
-                max_new_tokens=128,
+                max_new_tokens=2048,
                 # do_sample=True,
                 # temperature=0.01,
                 use_cache=True

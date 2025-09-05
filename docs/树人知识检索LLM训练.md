@@ -466,4 +466,6 @@ reasoning:
 
 问题3：可考虑deepseek
 
+问题4：pretrain infer 长度不够(128)，导致部分专业没有显示出来, 已修改和train 长度一样都 为2048
+
 
