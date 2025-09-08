@@ -1,26 +1,42 @@
 
 from openai import OpenAI
-import dashscope
 import random
 from src.nl2sql.secret import qwen_key
 
-dashscope.api_key = qwen_key
+class LLMApi:
 
-class QwenApi:
+    def __init__(self):
 
-    def __init__(self, model="qwen-max"):
-        self.model_name = 'qwen-max'
+        self.client = OpenAI(
+            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+            api_key=qwen_key
+        )
 
-    def call(self, messages):
+    def chat(self, messages):
 
-        response = dashscope.Generation.call(
-            model=self.model_name,
+        response = self.client.chat.completions.create(
+            model='qwen-max',
             messages=messages,
             seed=random.randint(1, 10000),
             result_format='message',  # 将返回结果格式设置为 message
+            temperature=0.25,
+            top_p=0.2
         )
 
         return response.output.choices[0].message.content
+
+    def reasoning(self, messages):
+
+        response = self.client.chat.completions.create(
+            model='qwen3-235b-a22b',
+            messages=messages,
+            temperature=0.7,
+            top_p=0.6
+        )
+
+        message = response.choices[0].message
+
+        return message.content, message.model_extra["reasoning_content"]
 
     def nl2sql(self, query: str) -> str:
 
@@ -80,7 +96,7 @@ class QwenApi:
             {"role": "user", "content": prompt}
         ]
 
-        return self.call(messages)
+        return self.chat(messages)
 
     def answer(self, query, md):
 
@@ -109,4 +125,4 @@ class QwenApi:
             {"role": "user", "content": prompt_}
         ]
 
-        return self.call(messages)
+        return self.reasoning(messages)

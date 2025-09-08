@@ -1,7 +1,7 @@
 
 import click
 from src.nl2sql.PandasQuery import PandasEngine
-from src.nl2sql.QwenApi import QwenApi
+from src.nl2sql.LLMApi import LLMApi
 from src.constant.inputs import inputs
 from src.common.MyRe import MyRe
 
@@ -20,7 +20,7 @@ class NL2SQL:
 
         self.excel = 'data/2022_23_24年浙江树人学院各省份录取情况.xlsx'
         self.pandas_engine = PandasEngine(self.excel)
-        self.qwen_api = QwenApi()
+        self.qwen_api = LLMApi()
         self.re = MyRe()
 
     def test(self, query):
@@ -50,8 +50,7 @@ class NL2SQL:
                 if not result.empty:
 
                     md = result.to_markdown(index=False)
-                    r = self.qwen_api.answer(q, md)
-                    reasoning, solution = self.re.extract_reasoning_solution(r)
+                    reasoning, solution = self.qwen_api.answer(q, md)
 
                     click.echo(f"{q} -- {sql} ok")
                     return (q, sql, result, reasoning, solution)
