@@ -9,19 +9,6 @@ class SFTDataset(BaseDataset):
             origin_dataset_file="data/sft_data.xlsx"
         )
 
-    def kn_message(self, x):
-        """
-        知识训练语料
-        """
-        expected_answer = x["expected_answer"]
-        problem = x["problem"]
-
-        return [
-            {"role": "system", "content": sft_system_prompt},
-            {"role": "user", "content": problem},
-            {"role": "assistant", "content": expected_answer},
-        ]
-
     def kn_format_message(self, x):
         """
         知识+格式训练语料
@@ -41,21 +28,6 @@ class SFTDataset(BaseDataset):
             {"role": "user", "content": problem},
             {"role": "assistant", "content": final_prompt},
         ]
-
-    def add_whole_row_dataset(self, dataset_):
-
-        def f(e):
-            problem = f'浙江省2024年本科{e["专业"]}录取情况'
-
-            return {
-                "problem": problem,
-                "reasoning": f'好的，针对{problem}，我将从{self.origin_columes}这些方面为您提供相关信息。',
-                "expected_answer": self.row_info(prefix=problem, e=e)
-            }
-
-        dataset_1 = dataset_.map(f, remove_columns=dataset_.column_names)
-
-        return self.split(dataset_1)
 
     def add_one_dimension_dataset(self, dataset_):
 

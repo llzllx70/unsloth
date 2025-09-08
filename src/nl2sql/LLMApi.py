@@ -15,15 +15,15 @@ class LLMApi:
     def chat(self, messages):
 
         response = self.client.chat.completions.create(
-            model='qwen-max',
+            # model='qwen-max',
+            model='qwen3-235b-a22b',
             messages=messages,
-            seed=random.randint(1, 10000),
-            result_format='message',  # 将返回结果格式设置为 message
             temperature=0.25,
-            top_p=0.2
+            top_p=0.2,
+            extra_body={"enable_thinking": False},
         )
 
-        return response.output.choices[0].message.content
+        return response.choices[0].message.content
 
     def reasoning(self, messages):
 
@@ -31,12 +31,42 @@ class LLMApi:
             model='qwen3-235b-a22b',
             messages=messages,
             temperature=0.7,
-            top_p=0.6
+            top_p=0.6,
+            extra_body={"enable_thinking": True},
+            # stream=True,
+            # stream_options={
+            #     "include_usage": True
+            # }, 
         )
 
-        message = response.choices[0].message
+        is_answering = False  # 是否进入回复阶段
 
-        return message.content, message.model_extra["reasoning_content"]
+        reasoning_content, answer_content = '', ''
+
+        for chunk in response:
+
+            if not chunk.choices:
+                print("\n" + "=" * 20 + "Token 消耗" + "=" * 20 + "\n")
+                print(chunk.usage)
+                continue
+
+            delta = chunk.choices[0].delta
+
+            # 只收集思考内容
+            if hasattr(delta, "reasoning_content") and delta.reasoning_content is not None:
+                if not is_answering:
+                    print(delta.reasoning_content, end="", flush=True)
+                reasoning_content += delta.reasoning_content
+
+            # 收到content，开始进行回复
+            if hasattr(delta, "content") and delta.content:
+                if not is_answering:
+                    print("\n" + "=" * 20 + "完整回复" + "=" * 20 + "\n")
+                    is_answering = True
+                print(delta.content, end="", flush=True)
+                answer_content += delta.content
+
+        return reasoning_content, answer_content
 
     def nl2sql(self, query: str) -> str:
 
@@ -125,4 +155,5 @@ class LLMApi:
             {"role": "user", "content": prompt_}
         ]
 
-        return self.reasoning(messages)
+        # return self.reasoning(messages)
+        return self.chat(messages)

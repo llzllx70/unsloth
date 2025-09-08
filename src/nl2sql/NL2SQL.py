@@ -1,5 +1,6 @@
 
 import click
+import traceback
 from src.nl2sql.PandasQuery import PandasEngine
 from src.nl2sql.LLMApi import LLMApi
 from src.constant.inputs import inputs
@@ -19,6 +20,7 @@ class NL2SQL:
     def __init__(self):
 
         self.excel = 'data/2022_23_24年浙江树人学院各省份录取情况.xlsx'
+        self.sft_data = 'data/sft_data.xlsx'
         self.pandas_engine = PandasEngine(self.excel)
         self.qwen_api = LLMApi()
         self.re = MyRe()
@@ -50,7 +52,8 @@ class NL2SQL:
                 if not result.empty:
 
                     md = result.to_markdown(index=False)
-                    reasoning, solution = self.qwen_api.answer(q, md)
+                    r = self.qwen_api.answer(q, md)
+                    reasoning, solution = self.re.extract_reasoning_solution(r)
 
                     click.echo(f"{q} -- {sql} ok")
                     return (q, sql, md, reasoning, solution)
@@ -60,6 +63,8 @@ class NL2SQL:
                     return (q, sql, None, None, None)
 
             except Exception as e:
+                traceback.print_exc()  # 打印完整的异常堆栈
+
                 click.echo(f"{q} -- {sql} error")
                 return (q, sql, None, None, None)
 
@@ -67,7 +72,7 @@ class NL2SQL:
             results = list(executor.map(f, inputs))
 
         df = pd.DataFrame(results, columns=['query', 'sql', 'result', 'reasoning', 'solution'])
-        df.to_excel('data/sft_data.xlsx', index=False)
+        df.to_excel(self.sft_data, index=False)
 
 
 def main():
