@@ -25,12 +25,8 @@ class MySFTTrainer(BaseTrainer):
 
         self.saved_lora = sft_saved_lora
         
-        self.max_seq_length = 2048 # Can increase for longer reasoning traces
+        self.max_seq_length = 20480 # Can increase for longer reasoning traces
         self.lora_rank = 128 # Larger rank = smarter, but slower
-
-        self.maximum_length = 201
-        self.max_prompt_length = self.maximum_length + 1 # + 1 just in case!
-        self.max_completion_length = self.max_seq_length - self.max_prompt_length
 
         self.model, self.tokenizer = FastLanguageModel.from_pretrained(
             model_name = pretrain_merged_model,
