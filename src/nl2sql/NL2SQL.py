@@ -52,8 +52,8 @@ class NL2SQL:
                 if not result.empty:
 
                     md = result.to_markdown(index=False)
-                    r = self.qwen_api.answer(q, md)
-                    reasoning, solution = self.re.extract_reasoning_solution(r)
+                    reasoning, solution = self.qwen_api.answer(q, md)
+                    # reasoning, solution = self.re.extract_reasoning_solution(r)
 
                     click.echo(f"{q} -- {sql} ok")
                     return (q, sql, md, reasoning, solution)

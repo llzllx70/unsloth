@@ -28,43 +28,12 @@ class LLMApi:
     def reasoning(self, messages):
 
         response = self.client.chat.completions.create(
-            model='qwen3-235b-a22b',
+            model='deepseek-r1',
             messages=messages,
-            temperature=0.7,
-            top_p=0.6,
-            extra_body={"enable_thinking": True},
-            # stream=True,
-            # stream_options={
-            #     "include_usage": True
-            # }, 
         )
 
-        is_answering = False  # 是否进入回复阶段
-
-        reasoning_content, answer_content = '', ''
-
-        for chunk in response:
-
-            if not chunk.choices:
-                print("\n" + "=" * 20 + "Token 消耗" + "=" * 20 + "\n")
-                print(chunk.usage)
-                continue
-
-            delta = chunk.choices[0].delta
-
-            # 只收集思考内容
-            if hasattr(delta, "reasoning_content") and delta.reasoning_content is not None:
-                if not is_answering:
-                    print(delta.reasoning_content, end="", flush=True)
-                reasoning_content += delta.reasoning_content
-
-            # 收到content，开始进行回复
-            if hasattr(delta, "content") and delta.content:
-                if not is_answering:
-                    print("\n" + "=" * 20 + "完整回复" + "=" * 20 + "\n")
-                    is_answering = True
-                print(delta.content, end="", flush=True)
-                answer_content += delta.content
+        reasoning_content = response.choices[0].message.reasoning_content
+        answer_content = response.choices[0].message.content
 
         return reasoning_content, answer_content
 
@@ -134,31 +103,19 @@ class LLMApi:
         【历年报考信息】
         {md}
 
-        【要求如下】 
-        1. 回答包括推理过程和最终结论，格式为：<REASONING>推理过程</REASONING>\n<SOLUTION>最终结论</SOLUTION>，要保证REASONING和SOLUTION标签成对出现
-        2. 推理过程要列出所有和问题相关的招生信息，如专业，分数，最低位次号等，对符合条件的所有专业都要输出，不要遗漏
-        3. 所有推理和结论都要可信，对于无法回复的问题，返回完整格式: <REASONING>信息不全，无法给出建议</REASONING>\n<SOLUTION>请补充信息再提问</SOLUTION>
-
-        【用户问题回答示例: "浙江530分可以选择什么专业？"】
-        <REASONING>根据历年信息，浙江2023年最低分小于530分的专业有：专业1(最低分xxx分)，专业2（最低分xxx分）...; 浙江2024年最低分小于530分的专业有：专业1(最低分xxx分)...; </REASONING>
-        <SOLUTION>可以选择的专业有：专业A(最低分525分)，专业B(最低分510分)</SOLUTION>
-
-        【用户问题示例回答: "啥专业好"】
-        <REASONING>信息不全，无法给出建议</REASONING>
-        <SOLUTION>请补充信息再提问</SOLUTION>
-
+        【要求】
+        1. 你只可依据上述提供信息回答问题，不要依据任何额外信息或编造信息
+        2. 一定要保证引用信息的完整性和正确性
+        3. 如果最低分和最低位次号都有提供，以最低分为主要依据，因为位次号是估计值，不如最低分准确
+        
         【用户问题】
         {query}
         """
-
-        # 3. 最终结论要简洁明了，尽可能给出结论性的建议, 不做过多解释
-        # 4. 如果最低分和最低位次号有冲突，以最低分为依据
-        # 5. 如果用户咨询的是2025年的信息，则只能依据2024年及以前的历年信息进行推理
 
         messages = [
             {"role": "system", "content": "你是浙江树人学院高考咨询助手。"},
             {"role": "user", "content": prompt_}
         ]
 
-        # return self.reasoning(messages)
-        return self.chat(messages)
+        return self.reasoning(messages)
+        # return self.chat(messages)
