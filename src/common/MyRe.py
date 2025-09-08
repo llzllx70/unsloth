@@ -35,7 +35,7 @@ class MyRe:
 
             return reasoning, solution
 
-        return None, None
+        raise Exception("无法提取出reasoning和solution，请检查正则表达式")
 
     def extract_solution(self, response):
 
