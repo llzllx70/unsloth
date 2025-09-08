@@ -53,7 +53,7 @@ class NL2SQL:
                     reasoning, solution = self.qwen_api.answer(q, md)
 
                     click.echo(f"{q} -- {sql} ok")
-                    return (q, sql, result, reasoning, solution)
+                    return (q, sql, md, reasoning, solution)
 
                 else:
                     click.echo(f"{q} -- {sql} none")
