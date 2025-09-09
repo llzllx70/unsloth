@@ -84,7 +84,7 @@ class SFTInfer(BaseInfer):
 
             output = self.model.generate(
                 **self.tokenizer(text, return_tensors="pt").to("cuda"),
-                max_new_tokens=512,
+                max_new_tokens=20480,
                 do_sample=True,
                 temperature=0.1,
             )
