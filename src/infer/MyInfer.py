@@ -26,18 +26,19 @@ class BaseInfer:
         self.model = AutoModelForCausalLM.from_pretrained(model, device_map="auto")
         self.tokenizer = AutoTokenizer.from_pretrained(model)
 
-class PretrainInfer(BaseInfer):
-    
-    def __init__(self):
-        super().__init__(pretrain_merged_model)
-        self.dataset = PretrainDataset(self.tokenizer)
-
     def print(self, idx, input, output):
 
         print(f"----------------------------{idx+1} Input------------------------")
         print(f"{input}")
         print(f"----------------------------Output------------------------")
         print(f"{output}\n")    
+
+
+class PretrainInfer(BaseInfer):
+    
+    def __init__(self):
+        super().__init__(pretrain_merged_model)
+        self.dataset = PretrainDataset(self.tokenizer)
 
     def do_infer(self):
 
@@ -47,7 +48,7 @@ class PretrainInfer(BaseInfer):
                     
             output = self.model.generate(
                 **self.tokenizer(text, return_tensors="pt").to("cuda"),
-                max_new_tokens=2048,
+                max_new_tokens=20480,
                 # do_sample=True,
                 # temperature=0.01,
                 use_cache=True
@@ -75,7 +76,7 @@ class SFTInfer(BaseInfer):
 
         ret = []
 
-        for e in self.dataset.test_dataset:
+        for idx, e in enumerate(self.dataset.test_dataset):
             text = self.tokenizer.apply_chat_template(
                 e["Messages"][:2],
                 tokenize=False,
@@ -91,13 +92,15 @@ class SFTInfer(BaseInfer):
 
             output_text = self.tokenizer.decode(output[0], skip_special_tokens=True)
 
-            print(f"Input: {text}")
-            print(f"Output: {output_text}\n")    
+            self.print(idx, text, output=output_text)
 
-            ret.append({
-                f'{self.task}_text': text,
-                f'{self.task}_output': output_text 
-            })
+            # print(f"Input: {text}")
+            # print(f"Output: {output_text}\n")    
+
+            # ret.append({
+            #     f'{self.task}_text': text,
+            #     f'{self.task}_output': output_text 
+            # })
 
         return ret
 
