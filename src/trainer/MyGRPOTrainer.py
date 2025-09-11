@@ -2,7 +2,6 @@
 from unsloth import FastLanguageModel
 from vllm import SamplingParams
 from trl import GRPOConfig, GRPOTrainer
-from peft import PeftModel
 
 from src.prompt.MyPrompt import *
 from src.reward.MyReward import MyReward
@@ -26,12 +25,8 @@ class MyGRPOTrainer(BaseTrainer):
 
         self.saved_lora = grpo_saved_lora
         
-        self.max_seq_length = 1024 # Can increase for longer reasoning traces
-        self.lora_rank = 32 # Larger rank = smarter, but slower
-
-        self.maximum_length = 201
-        self.max_prompt_length = self.maximum_length + 1 # + 1 just in case!
-        self.max_completion_length = self.max_seq_length - self.max_prompt_length
+        self.max_seq_length = 16000 # Can increase for longer reasoning traces
+        self.lora_rank = 128 # Larger rank = smarter, but slower
 
         self.model, self.tokenizer = FastLanguageModel.from_pretrained(
             model_name = sft_merged_model,
@@ -63,7 +58,7 @@ class MyGRPOTrainer(BaseTrainer):
             seed = 3407,
             stop = [self.tokenizer.eos_token],
             include_stop_str_in_output = True,
-            max_tokens=self.max_completion_length
+            max_tokens=8000
         )
         
         self.infer_sampling_params = SamplingParams(
@@ -92,8 +87,8 @@ class MyGRPOTrainer(BaseTrainer):
             per_device_train_batch_size = 1,
             gradient_accumulation_steps = 1, # Increase to 4 for smoother training
             num_generations = 16, # Decrease if out of memory
-            max_prompt_length = self.max_prompt_length,
-            max_completion_length = self.max_completion_length,
+            max_prompt_length = 10000,
+            max_completion_length = 8000,
             num_train_epochs = args.step, # Set to 1 for a full training run
             max_steps = args.step,
             save_steps = args.step,

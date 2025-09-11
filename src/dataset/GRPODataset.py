@@ -3,7 +3,11 @@ from src.dataset.BaseDataset import *
 class GRPODataset(BaseDataset):
     
     def __init__(self, tokenizer):
-        super().__init__(tokenizer=tokenizer, flag="grpo")
+        super().__init__(
+            tokenizer=tokenizer, 
+            flag="grpo",
+            origin_dataset_file=None
+        )
 
     def score_judge(self, dataset_):
 
@@ -67,6 +71,31 @@ class GRPODataset(BaseDataset):
 
         return self.split(d)
 
+    def from_sft(sefl):
+        
+        """
+        从sft语料中构建grpo语料
+        """
+
+        def f(e):
+            return {
+                "prompt" : [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": e["problem"]}
+                ],
+                "task": "F1",
+                "reasoning": e["reasoning"],
+                "solution": e["expected_answer"]
+            }
+            
+        sft_train = load_dataset('json', data_files='data/sft_train.jsonl', split='train')
+        sft_test = load_dataset('json', data_files='data/sft_test.jsonl', split='train')
+
+        tr = sft_train.map(f, remove_columns=sft_train.column_names)
+        te = sft_test.map(f, remove_columns=sft_test.column_names)
+
+        return tr, te
+
     def build_dataset(self):
 
         """
@@ -76,10 +105,15 @@ class GRPODataset(BaseDataset):
         4. 信息查询: “平均分”“最低分”  
         """
 
-        tr1, te1 = self.score_judge(self.origin_dataset_)
-        tr2, te2 = self.rank_judge(self.origin_dataset_)
+        # tr1, te1 = self.score_judge(self.origin_dataset_)
+        # tr2, te2 = self.rank_judge(self.origin_dataset_)
         # c = self.recommend()
         # d = self.query_info()
 
-        self.save([tr1, tr2], self.train_file)
-        self.save([te1, te2], self.test_file)
+        # self.save([tr1, tr2], self.train_file)
+        # self.save([te1, te2], self.test_file)
+
+        tr, te = self.from_sft()
+        self.save([tr], self.train_file)
+        self.save([te], self.test_file)
+

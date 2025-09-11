@@ -29,20 +29,25 @@ class MyReward:
         self.score_print(scores=scores,flag='0. start_with_reasoning_reward')
         return scores
 
-    def F1_reward(self, completions, ref_reason, **kwargs):
+    def F1_reward(self, completions, reasoning, solution, **kwargs):
 
         scores = []
 
         for idx, completion in enumerate(completions):
 
+            breakpoint()
+
             pred_reason = completion[0]['content']
 
+            pred_reason = reasoning + ' ' + solution
+
             pred_tokens = set(pred_reason.strip().split())
-            ref_tokens = set(ref_reason[idx].strip().split())
+            ref_tokens = set(reasoning[idx].strip().split())
 
             overlap = pred_tokens & ref_tokens
             if not overlap:
                 return 0.0
+
             precision = len(overlap) / len(pred_tokens)
             recall = len(overlap) / len(ref_tokens)
             scores.append(2 * precision * recall / (precision + recall))
@@ -193,10 +198,10 @@ class MyReward:
         
         return [
             # self.start_with_reasoning_reward,
-            # self.F1_reward,
+            self.F1_reward,
             # self.check_answer
-            self.format_score,
-            self.task_reward
+            # self.format_score,
+            # self.task_reward
         ]
 
 
