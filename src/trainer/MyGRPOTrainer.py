@@ -25,7 +25,7 @@ class MyGRPOTrainer(BaseTrainer):
 
         self.saved_lora = grpo_saved_lora
         
-        self.max_seq_length = 16000 # Can increase for longer reasoning traces
+        self.max_seq_length = 10000 # Can increase for longer reasoning traces
         self.lora_rank = 128 # Larger rank = smarter, but slower
 
         self.model, self.tokenizer = FastLanguageModel.from_pretrained(
@@ -65,7 +65,7 @@ class MyGRPOTrainer(BaseTrainer):
             temperature = 0.1,
             top_p = 0.95,
             top_k = -1,
-            max_tokens = 1024,
+            max_tokens = 20480,
         )
 
         self.myreward = MyReward(self.tokenizer)
@@ -75,7 +75,7 @@ class MyGRPOTrainer(BaseTrainer):
         
         training_args = GRPOConfig(
             vllm_sampling_params = self.vllm_sampling_params,
-            temperature = 1.5,  # default 1.0
+            temperature = 1,  # default 1.0, 设为1.5 会乱输出
             # learning_rate = 5e-6,
             learning_rate = 5e-5,
             weight_decay = 0.01,
@@ -86,8 +86,8 @@ class MyGRPOTrainer(BaseTrainer):
             logging_steps = 1,
             per_device_train_batch_size = 1,
             gradient_accumulation_steps = 1, # Increase to 4 for smoother training
-            num_generations = 16, # Decrease if out of memory
-            max_prompt_length = 10000,
+            num_generations = 4, # Decrease if out of memory
+            max_prompt_length = 200,
             max_completion_length = 8000,
             num_train_epochs = args.step, # Set to 1 for a full training run
             max_steps = args.step,
@@ -114,7 +114,8 @@ class MyGRPOTrainer(BaseTrainer):
             # train_dataset = new_dataset["train"],
             # eval_dataset = new_dataset["test"],
         )
-        self.test()
+
+        # self.test()
 
         trainer.train()
 

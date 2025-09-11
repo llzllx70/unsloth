@@ -35,24 +35,23 @@ class MyReward:
 
         for idx, completion in enumerate(completions):
 
-            breakpoint()
+            ground_truth = reasoning[idx] + ' ' + solution[idx]
+            print(ground_truth)
+            pred = completion[0]['content']
 
-            pred_reason = completion[0]['content']
+            ground_truth_tokens = set(ground_truth.strip().split())
+            pred_tokens = set(pred.strip().split())
 
-            pred_reason = reasoning + ' ' + solution
-
-            pred_tokens = set(pred_reason.strip().split())
-            ref_tokens = set(reasoning[idx].strip().split())
-
-            overlap = pred_tokens & ref_tokens
+            overlap = pred_tokens & ground_truth_tokens
             if not overlap:
-                return 0.0
+                scores.append(0.0)
 
-            precision = len(overlap) / len(pred_tokens)
-            recall = len(overlap) / len(ref_tokens)
-            scores.append(2 * precision * recall / (precision + recall))
+            else:
+                precision = len(overlap) / len(pred_tokens)
+                recall = len(overlap) / len(ground_truth_tokens)
+                scores.append(2 * precision * recall / (precision + recall))
             
-        self.score_print(scores=scores,flag='2. F1_reward')
+        self.score_print(scores=scores, flag='2. F1_reward')
         return scores
 
     def check_answer(self, prompts, completions, answer, **kwargs):
