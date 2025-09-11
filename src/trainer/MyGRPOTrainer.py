@@ -25,8 +25,8 @@ class MyGRPOTrainer(BaseTrainer):
 
         self.saved_lora = grpo_saved_lora
         
-        self.max_seq_length = 10000 # Can increase for longer reasoning traces
-        self.lora_rank = 128 # Larger rank = smarter, but slower
+        self.max_seq_length = 6000 # Can increase for longer reasoning traces
+        self.lora_rank = 32 # Larger rank = smarter, but slower
 
         self.model, self.tokenizer = FastLanguageModel.from_pretrained(
             model_name = sft_merged_model,
@@ -58,7 +58,7 @@ class MyGRPOTrainer(BaseTrainer):
             seed = 3407,
             stop = [self.tokenizer.eos_token],
             include_stop_str_in_output = True,
-            max_tokens=8000
+            max_tokens=4000
         )
         
         self.infer_sampling_params = SamplingParams(
@@ -88,7 +88,7 @@ class MyGRPOTrainer(BaseTrainer):
             gradient_accumulation_steps = 1, # Increase to 4 for smoother training
             num_generations = 4, # Decrease if out of memory
             max_prompt_length = 200,
-            max_completion_length = 8000,
+            max_completion_length = 4000,
             num_train_epochs = args.step, # Set to 1 for a full training run
             max_steps = args.step,
             save_steps = args.step,

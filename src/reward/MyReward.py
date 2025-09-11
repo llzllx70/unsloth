@@ -36,7 +36,6 @@ class MyReward:
         for idx, completion in enumerate(completions):
 
             ground_truth = reasoning[idx] + ' ' + solution[idx]
-            print(ground_truth)
             pred = completion[0]['content']
 
             ground_truth_tokens = set(ground_truth.strip().split())
