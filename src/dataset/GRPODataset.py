@@ -101,7 +101,7 @@ class GRPODataset(BaseDataset):
         return {
             "prompt" : [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": e["problem"]}
+                {"role": "user", "content": e["query"]}
             ],
             "task": "F1",
             "reasoning": e["reasoning"],
@@ -111,7 +111,7 @@ class GRPODataset(BaseDataset):
     def prepare_dataset(self, dataset_):
 
         dataset_ = dataset_.to_pandas()[
-            ["problem", "reasoning", "solution"]
+            ["query", "reasoning", "solution"]
         ]
 
         # pandas to JSON

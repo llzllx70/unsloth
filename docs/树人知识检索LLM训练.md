@@ -529,16 +529,44 @@ reasoning:
 
 ```
 
-**SFT**
-> reasoning + solution 用于构造参考答案，作为监督信息参入训练
+**SFT 训练数据集**
+
+> 构造SFT的过程
+
+md + q -> reasoning + solution
+
+> reasoning + solution 用于构造参考答案，作为监督信息参入训练, 注意此时已经 没有 原始table数据
 
 ```json
 {
-  "problem":"526能上什么大学",
+  "query":"526能上什么大学",
   "reasoning": "xxx",
-  "expected_answer": "xxx"
+  "solution": "xxx"
 }
 
+```
+
+**Reward**
+
+- 直接用sft_data.xlsx 表，调用 SFT merge 后的模型生成结果， 再调用llm进行 打分
+- 可以理解为在grpo训练前，目前的结果与期望还的多大的距离
+- 同时保留sft_data.xlsx 用于训练的reasoning 和 solution 也参入reward 训练，以增加多样性
+
+
+- 或者先直接调用本地部署的或者api 的奖励模型
+
+```json
+保留md信息，在Reward训练
+
+{
+  "query":"526能上什么大学",
+  "md": "xxx",
+
+  "reasoning": "xxx",
+  "solution": "xxx",
+
+  "score": "<judge>xxx</judge><score>2.7</score>"
+}
 ```
 
 **GRPO**
@@ -547,6 +575,20 @@ reasoning:
 
 
 ```json
+
+一直有md信息，用于调用reward 模型进行打分
+此时已经没有reasoning 和 solution 了， 因为 可直接用生成的 结合 md 进行打分
+
+format 后
+{
+  "task": "F1",
+  "query": "xxx",
+
+  "md": "table info",
+}
+
+prepare 后 ->
+
 {
   "prompt": [
     {
@@ -559,22 +601,10 @@ reasoning:
     }
   ],
   "task": "F1",
+  "query": "xxx",
 
-  "reasoning": "xxx",
-  "solution": "xxx"
+  "md": "table info",
 }
-```
 
-**Reward**
-
-> 直接通过SFT全量数据来生成奖励模型训练数据
-
-```json
-{
-  "problem":"526能上什么大学",
-  "reasoning": "xxx",
-  "expected_answer": "xxx"
-  "score": 2.7
-}
 ```
 
