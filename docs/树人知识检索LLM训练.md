@@ -530,7 +530,7 @@ reasoning:
 ```
 
 **SFT**
-> [!Tip] reasoning + solution 用于构造参考答案，作为监督信息参入训练
+> reasoning + solution 用于构造参考答案，作为监督信息参入训练
 
 ```json
 {
@@ -543,7 +543,7 @@ reasoning:
 
 **GRPO**
 
-> [!Tip] reasoning + solution 用于构造参考答案，与completions 计算F1值, 后续应和sft统一，在prepare_dataset时再format
+> reasoning + solution 用于构造参考答案，与completions 计算F1值, 后续应和sft统一，在prepare_dataset时再format
 
 
 ```json
@@ -565,7 +565,9 @@ reasoning:
 }
 ```
 
-**reward**
+**Reward**
+
+> 直接通过SFT全量数据来生成奖励模型训练数据
 
 ```json
 {
@@ -575,3 +577,4 @@ reasoning:
   "score": 2.7
 }
 ```
+

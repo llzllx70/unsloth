@@ -1,5 +1,7 @@
 from src.dataset.BaseDataset import *
 
+from src.dataset.SFTDataset import SFTDataset
+
 class GRPODataset(BaseDataset):
     
     def __init__(self, tokenizer):
@@ -8,6 +10,8 @@ class GRPODataset(BaseDataset):
             flag="grpo",
             origin_dataset_file=None
         )
+
+        self.sft_dataset = SFTDataset(tokenizer=tokenizer)
 
     def score_judge(self, dataset_):
 
@@ -71,31 +75,6 @@ class GRPODataset(BaseDataset):
 
         return self.split(d)
 
-    def from_sft(sefl):
-        
-        """
-        从sft语料中构建grpo语料
-        """
-
-        def f(e):
-            return {
-                "prompt" : [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": e["problem"]}
-                ],
-                "task": "F1",
-                "reasoning": e["reasoning"],
-                "solution": e["expected_answer"]
-            }
-            
-        sft_train = load_dataset('json', data_files='data/sft_train.jsonl', split='train')
-        sft_test = load_dataset('json', data_files='data/sft_test.jsonl', split='train')
-
-        tr = sft_train.map(f, remove_columns=sft_train.column_names)
-        te = sft_test.map(f, remove_columns=sft_test.column_names)
-
-        return tr, te
-
     def build_dataset(self):
 
         """
@@ -117,3 +96,26 @@ class GRPODataset(BaseDataset):
         self.save([tr], self.train_file)
         self.save([te], self.test_file)
 
+    def format(self, e):
+
+        return {
+            "prompt" : [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": e["problem"]}
+            ],
+            "task": "F1",
+            "reasoning": e["reasoning"],
+            "solution": e["expected_answer"]
+        }
+
+    def prepare_dataset(self, dataset_):
+
+        dataset_ = dataset_.to_pandas()[
+            ["problem", "reasoning", "solution"]
+        ]
+
+        # pandas to JSON
+        dataset_["prompt"] = dataset_.apply(self.format, axis = 1)
+        dataset_ = Dataset.from_pandas(dataset_)
+
+        return dataset_

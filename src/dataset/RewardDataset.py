@@ -1,4 +1,6 @@
 from src.dataset.BaseDataset import *
+from src.dataset.SFTDataset import SFTDataset
+from src.nl2sql.LLMApi import LLMApi
 
 class RewardDataset(BaseDataset):
 
@@ -8,51 +10,49 @@ class RewardDataset(BaseDataset):
 
     数据格式为：
     {
-        "problem": str,
+        "query": str,
         "reasoning": str,
-        "expected_answer": str
+        "solution": str
+        "score": float
     }
     """
     
     def __init__(self, tokenizer):
+
+        self.llm_api = LLMApi()
+
         super().__init__(
             tokenizer=tokenizer, 
             flag="reward", 
             origin_dataset_file="data/sft_data.xlsx"
+
         )
 
-    def kn_format_message(self, x):
-        """
-        知识+格式训练语料
-        """
-        expected_answer = x["expected_answer"]
-        problem = x["problem"]
-        reasoning = x["reasoning"].strip()
-        
-        final_prompt = (
-            f'{reasoning_start}{reasoning}{reasoning_end}'
-            '\n'
-            f'{solution_start}{expected_answer}{solution_end}'
+    def reward_score(self, md, q, r, s):
+
+        return self.llm_api.reward_score(
+            md=md,
+            query=q,
+            reasoning=r,
+            solution=s
         )
 
-        return [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": problem},
-            {"role": "assistant", "content": final_prompt},
-        ]
-
-    def add_one_dimension_dataset(self, dataset_):
+    def add_row_dataset(self, dataset_):
 
         def f(e):
 
-            if not e["solution"] or not e["query"] or not e["reasoning"]:
-                return None
+            md, q, r, s = e["result"], e["query"], e["reasoning"], e["solution"]
+            if not md or not q or not r or not s: return None
+
+            score = self.reward_score(md, q, r, s)
+            if not score: return None
 
             return (
                 {
-                    "problem": e["query"],
-                    "reasoning": e["reasoning"],
-                    "expected_answer": e["solution"]
+                    "query": q,
+                    "reasoning": r,
+                    "solution": s,
+                    "score": score
                 }
             )
 
@@ -61,17 +61,49 @@ class RewardDataset(BaseDataset):
 
         return self.split(dataset_filtered, test_size=0.1)
 
+    def add_score(self, dataset_, file_):
+
+        """在SFT的基础上添加score字段作为奖励信号"""
+
+        dataset_ = dataset_.to_pandas()[
+            ["query", "reasoning", "solution"]
+        ]
+
+        dataset_["score"] = dataset_.apple(self.reward_score, axis=1)
+
+        self.save([Dataset.from_pandas(dataset_)], file_)
+
     def build_dataset(self):
 
-        tr2, te2 = self.add_one_dimension_dataset(dataset_=self.origin_dataset)
+        tr2, te2 = self.add_row_dataset(dataset_=self.origin_dataset)
 
         self.save([tr2], self.train_file)
         self.save([te2], self.test_file)
 
+    def kn_format_message(self, x):
+        """
+        知识+格式训练语料
+        """
+        solution = x["solution"]
+        query = x["query"]
+        reasoning = x["reasoning"].strip()
+        
+        final_prompt = (
+            f'{reasoning_start}{reasoning}{reasoning_end}'
+            '\n'
+            f'{solution_start}{solution}{solution_end}'
+        )
+
+        return [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": query},
+            {"role": "assistant", "content": final_prompt},
+        ]
+
     def prepare_dataset(self, dataset_):
 
         dataset_ = dataset_.to_pandas()[
-            ["problem", "reasoning", "expected_answer"]
+            ["query", "reasoning", "solution"]
         ]
 
         # pandas to JSON
@@ -86,3 +118,9 @@ class RewardDataset(BaseDataset):
         dataset_ = Dataset.from_pandas(dataset_)
 
         return dataset_
+
+
+if __name__ == "__main__":
+    
+    reward_dataset = RewardDataset(tokenizer=None)
+    reward_dataset.build_dataset()

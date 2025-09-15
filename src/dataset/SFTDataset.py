@@ -9,27 +9,7 @@ class SFTDataset(BaseDataset):
             origin_dataset_file="data/sft_data.xlsx"
         )
 
-    def kn_format_message(self, x):
-        """
-        知识+格式训练语料
-        """
-        expected_answer = x["expected_answer"]
-        problem = x["problem"]
-        reasoning = x["reasoning"].strip()
-        
-        final_prompt = (
-            f'{reasoning_start}{reasoning}{reasoning_end}'
-            '\n'
-            f'{solution_start}{expected_answer}{solution_end}'
-        )
-
-        return [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": problem},
-            {"role": "assistant", "content": final_prompt},
-        ]
-
-    def add_one_dimension_dataset(self, dataset_):
+    def add_row_dataset(self, dataset_):
 
         def f(e):
 
@@ -38,9 +18,9 @@ class SFTDataset(BaseDataset):
 
             return (
                 {
-                    "problem": e["query"],
+                    "query": e["query"],
                     "reasoning": e["reasoning"],
-                    "expected_answer": e["solution"]
+                    "solution": e["solution"]
                 }
             )
 
@@ -51,15 +31,35 @@ class SFTDataset(BaseDataset):
 
     def build_dataset(self):
 
-        tr2, te2 = self.add_one_dimension_dataset(dataset_=self.origin_dataset)
+        tr2, te2 = self.add_row_dataset(dataset_=self.origin_dataset)
 
         self.save([tr2], self.train_file)
         self.save([te2], self.test_file)
 
+    def kn_format_message(self, x):
+        """
+        知识+格式训练语料
+        """
+        solution = x["solution"]
+        query = x["query"]
+        reasoning = x["reasoning"].strip()
+        
+        final_prompt = (
+            f'{reasoning_start}{reasoning}{reasoning_end}'
+            '\n'
+            f'{solution_start}{solution}{solution_end}'
+        )
+
+        return [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": query},
+            {"role": "assistant", "content": final_prompt},
+        ]
+
     def prepare_dataset(self, dataset_):
 
         dataset_ = dataset_.to_pandas()[
-            ["problem", "reasoning", "expected_answer"]
+            ["query", "reasoning", "solution"]
         ]
 
         # pandas to JSON

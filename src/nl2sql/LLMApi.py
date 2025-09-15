@@ -119,3 +119,46 @@ class LLMApi:
 
         return self.reasoning(messages)
         # return self.chat(messages)
+
+    def reward_score(self, md, query, reasoning, solution):
+
+        prompt_ = f"""你需要依据下面提供的信息和要求对用户问题的回答进行评分，满分为10分
+        【历年报考信息】
+        {md}
+        
+        【用户问题】
+        {query}
+        
+        【模型回答, 包括推理过程和答案】
+        <reasoning>{reasoning}</reasoning>
+        <solution>{solution}</solution>
+
+        【评分要求】
+        1. 评分满分为10分，最低为0分，如果回答中答案正确且完整，且推理过程完整，给10分
+        2. 如果推理过程不完整扣2分，推理过程包含错误信息扣3分
+        3. 如果答案不完整扣3分, 答案中包含错误信息扣5分
+        4. 如果答案和推理过程都包含错误信息或者完全不相关得0分
+
+        【返回格式要求】
+        1. 先返回评价依据，再返回评分，格式如下: 
+        <judge>评分依据</judge>
+        <score>评分</score
+
+        示例：
+        <judge>上述推理过程存在如下问题：
+        问题1. 2024年浙江工商管理最低分为552分，但是在推理过程中却是540分，所以扣3分 
+        问题2. 用户考了530分，小于552分，应该说可能性不大，而不是有希望被录取，所以扣5分
+        再结合第4点，答案和推理过程都包含错误信息，所以最终得0分
+        </judge>
+        <score>2</score
+        """
+
+        messages = [
+            {"role": "system", "content": "你是一个评价师 。"},
+            {"role": "user", "content": prompt_}
+        ]
+
+        return self.chat(messages=messages)
+
+        
+        
