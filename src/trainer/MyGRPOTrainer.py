@@ -119,8 +119,7 @@ class MyGRPOTrainer(BaseTrainer):
 
         trainer.train()
 
-        breakpoint()
-        print(type(self.model))
+        # print(type(self.model))
         self.model.save_lora(self.saved_lora)
 
         self.test(use_lora=True)
