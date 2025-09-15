@@ -58,6 +58,7 @@
       - [最终方案, 效果差](#最终方案-效果差)
   - [第6次训练，训练奖励模型](#第6次训练训练奖励模型)
     - [思路整理](#思路整理-2)
+    - [数据格式汇总](#数据格式汇总)
 
 # Search-R1
 
@@ -515,3 +516,62 @@ reasoning:
 
 1. 在GRPO训练过程中收集生成的completions
 2. 利用这些生成的completions训练reward model
+
+
+### 数据格式汇总
+
+**pretrain**
+
+```json
+{
+  "text":"比较2022年贵州文史本科市场营销和工商管理的最低分：市场营销专业最低分471，工商管理专业最低分472。","prefix":"比较2022年贵州文史本科市场营销和工商管理的最低分："
+}
+
+```
+
+**SFT**
+> [!Tip] reasoning + solution 用于构造参考答案，作为监督信息参入训练
+
+```json
+{
+  "problem":"526能上什么大学",
+  "reasoning": "xxx",
+  "expected_answer": "xxx"
+}
+
+```
+
+**GRPO**
+
+> [!Tip] reasoning + solution 用于构造参考答案，与completions 计算F1值, 后续应和sft统一，在prepare_dataset时再format
+
+
+```json
+{
+  "prompt": [
+    {
+      "content": "You .. <REASONING> and </REASONING> ... <SOLUTION></SOLUTION>",
+      "role":"system"
+    },
+    {
+      "content": "problem",
+      "role": "user"
+    }
+  ],
+  "task": "F1",
+
+  "reasoning": "xxx",
+  "solution": "xxx"
+}
+```
+
+**reward**
+
+```json
+{
+  "problem":"526能上什么大学",
+  "reasoning": "xxx",
+  "expected_answer": "xxx"
+  "score": 2.7
+}
+```
