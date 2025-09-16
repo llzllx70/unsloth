@@ -63,6 +63,7 @@
       - [**SFT 训练数据集**](#sft-训练数据集)
       - [**Reward**](#reward)
       - [**GRPO**](#grpo-1)
+    - [问题](#问题)
 
 # Search-R1
 
@@ -617,3 +618,6 @@ md + q -> reasoning + solution
 
 ```
 
+### 问题
+
+SFT训练语料太长了，生成的reasoning 和 solution，建议不要推理，直接给出结果
