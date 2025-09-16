@@ -15,10 +15,10 @@ class LLMApi:
     def chat(self, messages):
 
         response = self.client.chat.completions.create(
-            # model='qwen-max',
-            model='qwen3-235b-a22b',
+            model='qwen-max',
+            # model='qwen3-235b-a22b',
             messages=messages,
-            temperature=0.25,
+            temperature=0.1,
             top_p=0.2,
             extra_body={"enable_thinking": False},
         )
@@ -122,11 +122,13 @@ class LLMApi:
 
     def reward_score(self, reasoning, solution, reasoningi, solutioni):
 
-        prompt_ = f"""你需要对比所给文本基于参考文本的语义相似度，并分别进行评分，满分10分，最低0分，
+        prompt_ = f"""你需要对比模型生成文本基于参考文本的语义相似度，并进行评分
         【评分要求】
-        1. 参考文本和所给文本均包含推理过程和答案，分别用reasoning和solution标识
-        2. 如果所给文本和参考文本语义完全一致，可得满分10分
-        3. 所给文本和参考文本每存在一处语义不一致，或者事实错误，扣2分，最终分数不低于0分
+        1. 参考文本是正确答案，你需要据此对模型生成文本的正确性进行打分，满分10分，最终分数不低于0分
+        2. 参考文本和模型生成文本均包含推理过程和答案，分别用reasoning和solution标识
+        3. 模型生成文本若存在明确的事实错误, 每处错误扣2分
+        4. 模型生成文本若和参考文本若存在语义不一致，每处扣1分
+        5. 对于无法判断的内容，不要随意扣分
 
         【返回格式包括评分依据和最终得分】
         <judge>评分依据xxx</judge>
@@ -135,16 +137,16 @@ class LLMApi:
         【示例】
         <judge>评分依据：
         问题1. 在参考文本中提到2024年浙江工商管理最低分为552分，但是在所给文本却是540分，存在事实错误，扣2分 
-        问题2. 参考文本中提到户录取可能性不大，而在所给文本中提到很有希望被录取，存在语义错误，扣2分
-        所以最终得分为: 10-2-2=6分
+        问题2. 参考文本中提到户录取可能性不大，而在所给文本中提到很有希望被录取，存在语义不一致，扣1分
+        所以最终得分为: 10-2-1=7分
         </judge>
-        <score>6</score
+        <score>7</score
 
         【参考文本】
         <reasoning>{reasoning}</reasoning>
         <solution>{solution}</solution>
 
-        【所给文本】
+        【模型生成文本】
         <reasoning>{reasoningi}</reasoning>
         <solution>{solutioni}</solution>
         """

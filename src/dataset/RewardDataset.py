@@ -20,32 +20,20 @@ class RewardDataset(BaseDataset):
     
     def __init__(self, tokenizer):
 
+        self.sft_infer = SFTInfer()
+        self.re = MyRe()
         self.llm_api = LLMApi()
 
         super().__init__(
             tokenizer=tokenizer, 
             flag="reward", 
             origin_dataset_file="data/sft_data.xlsx"
-
-        )
-
-        self.infer = SFTInfer()
-        self.re = MyRe()
-
-    def reward_score(self, q, r, s, ri, si):
-
-        return self.llm_api.reward_score(
-            query=q,
-            reasoning=r,
-            solution=s,
-            reasoningi=ri,
-            solutioni=si
         )
 
     def do_infer_reasoning_solution(self, q):
 
         try:
-            output_text = self.infer.default_infer(q)
+            output_text = self.sft_infer.default_infer(q)
             reasoning, solution = self.re.extract_reasoning_solution(output_text)
 
             return reasoning, solution
@@ -71,8 +59,13 @@ class RewardDataset(BaseDataset):
 
             for i in range(3):
 
-                ri, si = self.infer.do_infer_reasoning_solution(q) 
-                score = self.reward_score(q, r, s, ri, si)
+                ri, si = self.do_infer_reasoning_solution(q) 
+                score = self.llm_api.reward_score(
+                    reasoning=r,
+                    solution=s,
+                    reasoningi=ri,
+                    solutioni=si
+                )
 
                 ret.update({
                     f"reasoning{i}": ri,
@@ -81,7 +74,8 @@ class RewardDataset(BaseDataset):
                 })
 
 
-        dataset_2 = dataset_.map(f, remove_columns=dataset_.column_names)
+        # dataset_2 = dataset_.map(f, remove_columns=dataset_.column_names)
+        dataset_2 = dataset_.select(range(2)).map(f, remove_columns=dataset_.column_names)
         dataset_filtered = dataset_2.filter(lambda x: x is not None)
 
         return self.split(dataset_filtered, test_size=0.1)

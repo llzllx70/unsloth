@@ -81,14 +81,22 @@ class SFTInfer(BaseInfer):
             add_generation_prompt=True,  # Must add for generation
         )
 
+        inputs = self.tokenizer(text, return_tensors="pt").to("cuda")
+
         output = self.model.generate(
-            **self.tokenizer(text, return_tensors="pt").to("cuda"),
+            **inputs,
             max_new_tokens=20480,
             do_sample=True,
             temperature=0.1,
         )
 
-        output_text = self.tokenizer.decode(output[0], skip_special_tokens=True)
+        # 输入的长度
+        input_length = inputs["input_ids"].shape[1]
+
+        # 只取生成的新 token 部分
+        generated_tokens = output[0][input_length:]
+
+        output_text = self.tokenizer.decode(generated_tokens, skip_special_tokens=True)
 
         return text, output_text
 
