@@ -59,6 +59,10 @@
   - [第6次训练，训练奖励模型](#第6次训练训练奖励模型)
     - [思路整理](#思路整理-2)
     - [数据格式汇总](#数据格式汇总)
+      - [**pretrain**](#pretrain)
+      - [**SFT 训练数据集**](#sft-训练数据集)
+      - [**Reward**](#reward)
+      - [**GRPO**](#grpo-1)
 
 # Search-R1
 
@@ -520,7 +524,7 @@ reasoning:
 
 ### 数据格式汇总
 
-**pretrain**
+#### **pretrain**
 
 ```json
 {
@@ -529,7 +533,7 @@ reasoning:
 
 ```
 
-**SFT 训练数据集**
+#### **SFT 训练数据集**
 
 > 构造SFT的过程
 
@@ -538,6 +542,8 @@ md + q -> reasoning + solution
 > reasoning + solution 用于构造参考答案，作为监督信息参入训练, 注意此时已经 没有 原始table数据
 
 ```json
+不需要md数据
+
 {
   "query":"526能上什么大学",
   "reasoning": "xxx",
@@ -546,48 +552,51 @@ md + q -> reasoning + solution
 
 ```
 
-**Reward**
+#### **Reward**
 
-- 直接用sft_data.xlsx 表，调用 SFT merge 后的模型生成结果， 再调用llm进行 打分
-- 可以理解为在grpo训练前，目前的结果与期望还的多大的距离
-- 同时保留sft_data.xlsx 用于训练的reasoning 和 solution 也参入reward 训练，以增加多样性
-
-
-- 或者先直接调用本地部署的或者api 的奖励模型
+> [!Tip] - 直接评价与参考答案 reasoning/solution 的差距 !!!
 
 ```json
-保留md信息，在Reward训练
+1. sft_train/test.xlsx -> merged SFT -> reasoning/solution -> score -> reward_data.xlsx
+2. 拆分为 train/test 是因为要测量reward的效果
+3. reward_data.xlsx格式, 保留sql 和 result 是为了查看
+   query sql result reasoning solution reasoning1 solution1 score1 ...
+
+4. reward_data.xlsx -> RewardDataset.py -> reward_train/test.jsonl
 
 {
   "query":"526能上什么大学",
-  "md": "xxx",
-
-  "reasoning": "xxx",
-  "solution": "xxx",
-
-  "score": "<judge>xxx</judge><score>2.7</score>"
+  "reasoning": "reasoning2",  # 原参考 reasoning/solution 不参入计算
+  "solution": "solution2",
+  "score": "<judge>xxx</judge><score>10</score>"  # 不拆
 }
+
+{
+  "query":"526能上什么大学",
+  "reasoning": "reasoning1",
+  "solution": "solution1",
+  "score": "<judge>xxx</judge><score>5</score>"
+}
+
+5. 使用Qwen3-4B 进行sft训练
 ```
 
-**GRPO**
-
-> reasoning + solution 用于构造参考答案，与completions 计算F1值, 后续应和sft统一，在prepare_dataset时再format
-
+#### **GRPO**
 
 ```json
 
-一直有md信息，用于调用reward 模型进行打分
-此时已经没有reasoning 和 solution 了， 因为 可直接用生成的 结合 md 进行打分
+1. sft_train/test.jsonl -> 
 
-format 后
+原sft_train.jsonl
 {
-  "task": "F1",
-  "query": "xxx",
-
-  "md": "table info",
+  "query":"526能上什么大学",
+  "reasoning": "xxx",
+  "solution": "xxx"
 }
 
-prepare 后 ->
+2. 不需要format
+
+3. prepare 后 -> 添加prompt
 
 {
   "prompt": [
@@ -602,8 +611,8 @@ prepare 后 ->
   ],
   "task": "F1",
   "query": "xxx",
-
-  "md": "table info",
+  "reasoning": "",
+  "solution": ""
 }
 
 ```

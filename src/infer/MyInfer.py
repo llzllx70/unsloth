@@ -4,6 +4,7 @@ from src.common.Funs import set_tokenizer_chat_template
 from src.dataset.PretrainDataset import PretrainDataset
 from src.dataset.SFTDataset import SFTDataset
 from src.dataset.GRPODataset import GRPODataset
+from src.prompt.MyPrompt import *
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -72,37 +73,47 @@ class SFTInfer(BaseInfer):
         self.dataset = SFTDataset(self.tokenizer)
         set_tokenizer_chat_template(self.tokenizer)
 
+    def inner_infer(self, message):
+
+        text = self.tokenizer.apply_chat_template(
+            message,
+            tokenize=False,
+            add_generation_prompt=True,  # Must add for generation
+        )
+
+        output = self.model.generate(
+            **self.tokenizer(text, return_tensors="pt").to("cuda"),
+            max_new_tokens=20480,
+            do_sample=True,
+            temperature=0.1,
+        )
+
+        output_text = self.tokenizer.decode(output[0], skip_special_tokens=True)
+
+        return text, output_text
+
     def do_infer(self):
 
         ret = []
 
         for idx, e in enumerate(self.dataset.test_dataset):
-            text = self.tokenizer.apply_chat_template(
-                e["Messages"][:2],
-                tokenize=False,
-                add_generation_prompt=True,  # Must add for generation
-            )
 
-            output = self.model.generate(
-                **self.tokenizer(text, return_tensors="pt").to("cuda"),
-                max_new_tokens=20480,
-                do_sample=True,
-                temperature=0.1,
-            )
-
-            output_text = self.tokenizer.decode(output[0], skip_special_tokens=True)
-
+            text, output_text = self.inner_infer(e["Messages"][:2])
             self.print(idx, text, output=output_text)
 
-            # print(f"Input: {text}")
-            # print(f"Output: {output_text}\n")    
-
-            # ret.append({
-            #     f'{self.task}_text': text,
-            #     f'{self.task}_output': output_text 
-            # })
-
         return ret
+
+    def default_infer(self, query):
+
+        message = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": query}
+        ]
+
+        text, output_text = self.inner_infer(message)
+
+        return output_text
+
 
 class GRPOInfer(BaseInfer):
     

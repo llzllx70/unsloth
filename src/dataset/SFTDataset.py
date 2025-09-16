@@ -65,7 +65,7 @@ class SFTDataset(BaseDataset):
         # pandas to JSON
         dataset_["Messages"] = dataset_.apply(self.kn_format_message, axis = 1)
 
-        # JSON to str
+        # 对应 SFTTrainer::do_train() -> dataset_text_field = "text",
         dataset_["text"] = self.tokenizer.apply_chat_template(
             dataset_["Messages"].values.tolist(), 
             tokenize = False

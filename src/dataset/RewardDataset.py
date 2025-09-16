@@ -1,6 +1,7 @@
 from src.dataset.BaseDataset import *
-from src.dataset.SFTDataset import SFTDataset
 from src.nl2sql.LLMApi import LLMApi
+from src.infer.MyInfer import SFTInfer
+from src.common.MyRe import MyRe
 
 class RewardDataset(BaseDataset):
 
@@ -28,33 +29,57 @@ class RewardDataset(BaseDataset):
 
         )
 
-    def reward_score(self, md, q, r, s):
+        self.infer = SFTInfer()
+        self.re = MyRe()
+
+    def reward_score(self, q, r, s, ri, si):
 
         return self.llm_api.reward_score(
-            md=md,
             query=q,
             reasoning=r,
-            solution=s
+            solution=s,
+            reasoningi=ri,
+            solutioni=si
         )
+
+    def do_infer_reasoning_solution(self, q):
+
+        try:
+            output_text = self.infer.default_infer(q)
+            reasoning, solution = self.re.extract_reasoning_solution(output_text)
+
+            return reasoning, solution
+
+        except Exception as ex:
+            print(f"Error: {ex}")
+            return None, None
 
     def add_row_dataset(self, dataset_):
 
         def f(e):
 
-            md, q, r, s = e["result"], e["query"], e["reasoning"], e["solution"]
-            if not md or not q or not r or not s: return None
+            q, sql, md, r, s = e["query"], e["sql"], e["result"], e["reasoning"], e["solution"]
+            if not q or not md or not r or not s: return None
 
-            score = self.reward_score(md, q, r, s)
-            if not score: return None
+            ret = {
+                "query": q,
+                "sql": sql,
+                "result": md,
+                "reasoning": r,
+                "solution": s 
+            }
 
-            return (
-                {
-                    "query": q,
-                    "reasoning": r,
-                    "solution": s,
-                    "score": score
-                }
-            )
+            for i in range(3):
+
+                ri, si = self.infer.do_infer_reasoning_solution(q) 
+                score = self.reward_score(q, r, s, ri, si)
+
+                ret.update({
+                    f"reasoning{i}": ri,
+                    f"solution{i}": si,
+                    f"score{i}": score
+                })
+
 
         dataset_2 = dataset_.map(f, remove_columns=dataset_.column_names)
         dataset_filtered = dataset_2.filter(lambda x: x is not None)
