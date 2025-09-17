@@ -1,16 +1,18 @@
 
-reasoning_start = "<REASONING>" # Acts as <think>
+# reasoning_start = "<REASONING>" # Acts as <think>
+reasoning_start = "回答:" # Acts as <think>
+
 reasoning_end   = "</REASONING>"   # Acts as </think>
 solution_start  = "<SOLUTION>"
 solution_end    = "</SOLUTION>"
 
-system_prompt = \
+system_prompt_r1 = \
 f"""You are given a problem.
 Think about the problem and provide your working out.
 Place your reason between {reasoning_start} and {reasoning_end}.
 Then, provide your solution between {solution_start}{solution_end}"""
 
-sft_system_prompt = "你是树人大学招生专家"
+system_prompt = "你是树人大学招生专家"
 
 sft_system_prompt_r1 = \
 f"""先将专业信息置入{reasoning_start}和{reasoning_end}内，

@@ -43,7 +43,7 @@ class SFTDataset(BaseDataset):
         out = x["out"]
         
         return [
-            {"role": "system", "content": sft_system_prompt},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": query},
             {"role": "assistant", "content": out},
         ]
