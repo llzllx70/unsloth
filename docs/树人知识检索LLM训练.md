@@ -623,3 +623,4 @@ md + q -> reasoning + solution
 - SFT训练语料太长了，生成的reasoning 和 solution，建议不要推理，直接给出结果
 - 训练回复类似deepseek 满血版的推理模型，4B的模型难度太大，先简单回复
 - 但要保证SFT生成数据的正确性
+- 如果短，在GRPO时，直接调用api进行打分

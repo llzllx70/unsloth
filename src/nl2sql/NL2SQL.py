@@ -40,7 +40,7 @@ class NL2SQL:
         except Exception as e:
             click.echo(f"执行出错: {e}")
 
-    def build_sft(self):
+    def build_sft_r1(self):
 
         def f(q):
 
@@ -74,6 +74,32 @@ class NL2SQL:
         df = pd.DataFrame(results, columns=['query', 'sql', 'result', 'reasoning', 'solution'])
         df.to_excel(self.sft_data, index=False)
 
+    def build_sft(self):
+
+        def f(row):
+
+            try:
+                q = row['query']
+                md = row['result']
+                sql = row['sql']
+
+                out = self.qwen_api.answer(row['query'], row['result'])
+
+                click.echo(f"{q} -- {out} ok")
+                return (q, sql, md, out)
+
+            except Exception as e:
+                traceback.print_exc()  # 打印完整的异常堆栈
+                return (q, sql, md, None)
+
+        df = pd.read_excel('data/sft_data_r1.xlsx')
+        rows = [row for _, row in df.iterrows()]
+
+        with ThreadPoolExecutor(max_workers=10) as executor:  
+            results = list(executor.map(f, rows))
+
+        df = pd.DataFrame(results, columns=['query', 'sql', 'result', 'out'])
+        df.to_excel(self.sft_data, index=False)
 
 def main():
 

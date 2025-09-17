@@ -104,8 +104,8 @@ class LLMApi:
         {md}
 
         【要求】
-        1. 你只可依据上述提供信息回答问题，不要依据任何额外信息或编造信息
-        2. 一定要保证引用信息的完整性和正确性
+        1. 你只可依据历年报考信息回答问题， 一定要保证引用信息的完整性和正确性
+        2. 回答内容只需文本内容，不需要表格或markdown等格式信息
         3. 如果最低分和最低位次号都有提供，以最低分为主要依据，因为位次号是估计值，不如最低分准确
         
         【用户问题】
@@ -117,8 +117,23 @@ class LLMApi:
             {"role": "user", "content": prompt_}
         ]
 
-        return self.reasoning(messages)
-        # return self.chat(messages)
+        # response = self.client.chat.completions.create(
+        #     # model='qwen-max',
+        #     # model='qwen3-235b-a22b',
+        #     model='qwen3-max-preview',
+        #     messages=messages,
+        #     temperature=0.1,
+        #     top_p=0.2,
+        #     extra_body={"enable_thinking": False},
+        # )
+
+        response = self.client.chat.completions.create(
+            model='deepseek-v3.1',
+            messages=messages,
+        )
+        a = response.choices[0].message.content
+
+        return a
 
     def reward_score(self, reasoning, solution, reasoningi, solutioni):
 
@@ -157,6 +172,3 @@ class LLMApi:
         ]
 
         return self.chat(messages=messages)
-
-        
-        
