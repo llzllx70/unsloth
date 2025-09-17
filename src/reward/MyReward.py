@@ -1,4 +1,5 @@
 
+import jieba
 from src.common.MyRe import MyRe
 
 class MyReward:
@@ -29,25 +30,27 @@ class MyReward:
         self.score_print(scores=scores,flag='0. start_with_reasoning_reward')
         return scores
 
-    def F1_reward(self, completions, reasoning, solution, **kwargs):
+    def F1_reward(self, completions, query, out, **kwargs):
 
         scores = []
 
         for idx, completion in enumerate(completions):
 
-            ground_truth = reasoning[idx] + ' ' + solution[idx]
             pred = completion[0]['content']
+            truth = out[idx]
 
-            ground_truth_tokens = set(ground_truth.strip().split())
-            pred_tokens = set(pred.strip().split())
+            pred_tokens = list(jieba.lcut(pred))
+            truth_tokens = list(jieba.lcut(truth))
 
-            overlap = pred_tokens & ground_truth_tokens
-            if not overlap:
+            common = set(pred_tokens) & set(truth_tokens)
+            common_count = sum(min(pred_tokens.count(t), truth_tokens.count(t)) for t in common)
+
+            if common_count == 0:
                 scores.append(0.0)
 
             else:
-                precision = len(overlap) / len(pred_tokens)
-                recall = len(overlap) / len(ground_truth_tokens)
+                precision = common_count / len(pred_tokens)
+                recall = common_count / len(truth_tokens)
                 scores.append(2 * precision * recall / (precision + recall))
             
         self.score_print(scores=scores, flag='2. F1_reward')

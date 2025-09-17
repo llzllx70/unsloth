@@ -93,9 +93,13 @@ class BaseDataset:
         s = dataset_.train_test_split(test_size=test_size, seed=seed)
         return s['train'], s['test']
 
-    def save(self, l_dataset_, jsonl_):
+    def save(self, l_dataset_, jsonl_, shuffle=True):
         
-        dataset_ = concatenate_datasets(l_dataset_).shuffle(seed=42)
+        dataset_ = concatenate_datasets(l_dataset_)
+
+        if shuffle:
+            dataset_ = dataset_.shuffle(seed=42)
+
         dataset_.to_json(jsonl_, orient="records", lines=True, force_ascii=False)
 
     def prepare_dataset(self, dataset_):

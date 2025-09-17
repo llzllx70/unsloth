@@ -5,13 +5,14 @@ from src.dataset.SFTDataset import SFTDataset
 class GRPODataset(BaseDataset):
     
     def __init__(self, tokenizer):
+
+        self.sft_dataset = SFTDataset(tokenizer=tokenizer)
+
         super().__init__(
             tokenizer=tokenizer, 
             flag="grpo",
             origin_dataset_file=None
         )
-
-        self.sft_dataset = SFTDataset(tokenizer=tokenizer)
 
     def score_judge(self, dataset_):
 
@@ -77,44 +78,30 @@ class GRPODataset(BaseDataset):
 
     def build_dataset(self):
 
-        """
-        1. 分数判断: “我考了”“分” → “能否”                                                                                
-        2. 位次判断: “我排在”“位” → “能不能”                                                                              
-        3. 推荐: “推荐什么”“适合我”                                                                                       
-        4. 信息查询: “平均分”“最低分”  
-        """
+        def f(e):
+            e['task'] = 'F1' 
+            return e
 
-        # tr1, te1 = self.score_judge(self.origin_dataset_)
-        # tr2, te2 = self.rank_judge(self.origin_dataset_)
-        # c = self.recommend()
-        # d = self.query_info()
-
-        # self.save([tr1, tr2], self.train_file)
-        # self.save([te1, te2], self.test_file)
-
-        tr, te = self.from_sft()
-        self.save([tr], self.train_file)
-        self.save([te], self.test_file)
+        tr = self.sft_dataset.train_dataset.map(f)
+        te = self.sft_dataset.test_dataset.map(f)
+        
+        self.save([tr], self.train_file, shuffle=False)
+        self.save([te], self.test_file, shuffle=False)
 
     def format(self, e):
 
-        return {
-            "prompt" : [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": e["query"]}
-            ],
-            "task": "F1",
-            "reasoning": e["reasoning"],
-            "solution": e["expected_answer"]
-        }
+        return [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": e["query"]}
+        ]
 
     def prepare_dataset(self, dataset_):
 
         dataset_ = dataset_.to_pandas()[
-            ["query", "reasoning", "solution"]
+            ["query", "out", "task"]
         ]
 
-        # pandas to JSON
+        # add prompt
         dataset_["prompt"] = dataset_.apply(self.format, axis = 1)
         dataset_ = Dataset.from_pandas(dataset_)
 
