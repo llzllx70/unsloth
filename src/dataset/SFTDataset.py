@@ -13,14 +13,13 @@ class SFTDataset(BaseDataset):
 
         def f(e):
 
-            if not e["solution"] or not e["query"] or not e["reasoning"]:
+            if not e["query"] or not e["out"]:
                 return None
 
             return (
                 {
                     "query": e["query"],
-                    "reasoning": e["reasoning"],
-                    "solution": e["solution"]
+                    "out": e["out"]
                 }
             )
 
@@ -36,34 +35,27 @@ class SFTDataset(BaseDataset):
         self.save([tr2], self.train_file)
         self.save([te2], self.test_file)
 
-    def kn_format_message(self, x):
+    def format(self, x):
         """
         知识+格式训练语料
         """
-        solution = x["solution"]
         query = x["query"]
-        reasoning = x["reasoning"].strip()
+        out = x["out"]
         
-        final_prompt = (
-            f'{reasoning_start}{reasoning}{reasoning_end}'
-            '\n'
-            f'{solution_start}{solution}{solution_end}'
-        )
-
         return [
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": sft_system_prompt},
             {"role": "user", "content": query},
-            {"role": "assistant", "content": final_prompt},
+            {"role": "assistant", "content": out},
         ]
 
     def prepare_dataset(self, dataset_):
 
         dataset_ = dataset_.to_pandas()[
-            ["query", "reasoning", "solution"]
+            ["query", "out"]
         ]
 
         # pandas to JSON
-        dataset_["Messages"] = dataset_.apply(self.kn_format_message, axis = 1)
+        dataset_["Messages"] = dataset_.apply(self.format, axis = 1)
 
         # 对应 SFTTrainer::do_train() -> dataset_text_field = "text",
         dataset_["text"] = self.tokenizer.apply_chat_template(
