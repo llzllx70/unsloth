@@ -1,6 +1,11 @@
 
 import jieba
+import json
 from src.common.MyRe import MyRe
+from src.reward.kw import all_kw
+
+for w in all_kw:
+    jieba.add_word(w)
 
 class MyReward:
 
@@ -13,10 +18,16 @@ class MyReward:
 
         self.re = MyRe()
 
-    def score_print(self, scores, flag):
+        self.stop_words = set(['的', '了', '和', '是', '在', '，', '。', '：', '（', '）', '-', '\n', ' ', '有', '与', '或', '您'])
+
+    def score_print(self, scores, flag, infos=None):
 
         print(f'\n=================score:{flag}=====================')
         print(f'{scores}')
+
+        if infos is not None:
+            pretty_json = json.dumps(infos, indent=2, ensure_ascii=False)
+            print(pretty_json)
 
     def start_with_reasoning_reward(self, completions, **kwargs):
 
@@ -33,6 +44,7 @@ class MyReward:
     def F1_reward(self, completions, query, out, **kwargs):
 
         scores = []
+        infos = []
 
         for idx, completion in enumerate(completions):
 
@@ -42,18 +54,35 @@ class MyReward:
             pred_tokens = list(jieba.lcut(pred))
             truth_tokens = list(jieba.lcut(truth))
 
+            pred_tokens = [t for t in pred_tokens if t not in self.stop_words]
+            truth_tokens = [t for t in truth_tokens if t not in self.stop_words]
+
             common = set(pred_tokens) & set(truth_tokens)
             common_count = sum(min(pred_tokens.count(t), truth_tokens.count(t)) for t in common)
 
             if common_count == 0:
-                scores.append(0.0)
-
+                f1 = 0.0
             else:
                 precision = common_count / len(pred_tokens)
                 recall = common_count / len(truth_tokens)
-                scores.append(2 * precision * recall / (precision + recall))
+                f1 = 2 * precision * recall / (precision + recall)
+
+            scores.append(f1)
+            infos.append({
+                "pred": pred,
+                # "pred_tokens": pred_tokens,
+                "truth": truth,
+                # "truth_tokens": truth_tokens,
+                "f1": f1
+            })
             
-        self.score_print(scores=scores, flag='2. F1_reward')
+        if query[0] == '我是浙江考生，选课物化，我分数482，排名192244，被录取的概率有多大？':
+            self.score_print(scores=scores, flag=f'F1 {query[0]}', infos=infos)
+            breakpoint()
+
+        else:
+            self.score_print(scores=scores, flag=f'F1 {query[0]}')
+
         return scores
 
     def check_answer(self, prompts, completions, answer, **kwargs):

@@ -55,7 +55,7 @@ class MyGRPOTrainer(BaseTrainer):
             min_p = 0.1,
             top_p = 1.0,
             top_k = -1,
-            seed = 3407,
+            # seed = 3407,
             stop = [self.tokenizer.eos_token],
             include_stop_str_in_output = True,
             max_tokens=4000
