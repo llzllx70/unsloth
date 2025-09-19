@@ -57,7 +57,7 @@ class MyReward:
             pred_tokens = [t for t in pred_tokens if t not in self.stop_words]
             truth_tokens = [t for t in truth_tokens if t not in self.stop_words]
 
-            common = set(pred_tokens) & set(truth_tokens)
+            common = list(set(pred_tokens) & set(truth_tokens))
             common_count = sum(min(pred_tokens.count(t), truth_tokens.count(t)) for t in common)
 
             if common_count == 0:
@@ -73,15 +73,13 @@ class MyReward:
                 # "pred_tokens": pred_tokens,
                 "truth": truth,
                 # "truth_tokens": truth_tokens,
+                # "common": common,
+                "common_count": common_count,
                 "f1": f1
             })
             
-        if query[0] == '我是浙江考生，选课物化，我分数482，排名192244，被录取的概率有多大？':
-            self.score_print(scores=scores, flag=f'F1 {query[0]}', infos=infos)
-            breakpoint()
-
-        else:
-            self.score_print(scores=scores, flag=f'F1 {query[0]}')
+        # if query[0] == '我是浙江考生，选课物化，我分数482，排名192244，被录取的概率有多大？':
+        self.score_print(scores=scores, flag=f'F1 {query[0]}', infos=infos)
 
         return scores
 
