@@ -633,4 +633,6 @@ md + q -> reasoning + solution
 - 考虑在grpo训练过程中
 - 在sft中使用的语料是通过ds_v3.1 生成的，和pretrain 中的语料判别太大
 - 建议中sft中应该使用pretrain 中的原子语句
+- jieba + user_dict + stops
+- 考虑bge
 
