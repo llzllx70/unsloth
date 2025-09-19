@@ -64,6 +64,7 @@
       - [**Reward**](#reward)
       - [**GRPO**](#grpo-1)
     - [问题](#问题)
+    - [sft去掉推理，直接使用deepseek\_v3.1 进行生成](#sft去掉推理直接使用deepseek_v31-进行生成)
 
 # Search-R1
 
@@ -624,3 +625,12 @@ md + q -> reasoning + solution
 - 训练回复类似deepseek 满血版的推理模型，4B的模型难度太大，先简单回复
 - 但要保证SFT生成数据的正确性
 - 如果短，在GRPO时，直接调用api进行打分
+
+### sft去掉推理，直接使用deepseek_v3.1 进行生成
+
+- 使用F1进行打分
+- 效果还是不好
+- 考虑在grpo训练过程中
+- 在sft中使用的语料是通过ds_v3.1 生成的，和pretrain 中的语料判别太大
+- 建议中sft中应该使用pretrain 中的原子语句
+

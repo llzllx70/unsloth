@@ -154,18 +154,6 @@ class GRPOInfer(BaseInfer):
             print(f"Input: {text}")
             print(f"Output: {output_text}\n")    
 
-            if self.task == 'sft':
-                ret.append({
-                    f'{self.task}_info': item['info'],
-                    f'{self.task}_text': text,
-                    f'{self.task}_output': output_text 
-                })
-
-            else:
-                ret.append({
-                    f'{self.task}_output': output_text 
-                })
-
         return ret
 
 
@@ -268,6 +256,9 @@ if __name__ == '__main__':
 
     elif args.task == 'sft':
         ret1 = SFTInfer().do_infer()
+
+    elif args.task == 'grpo':
+        ret1 = GRPOInfer().do_infer()
 
     else:
         CompareInfer().do_infer()
