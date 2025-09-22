@@ -20,10 +20,10 @@ class MyReward:
 
         self.stop_words = set(['的', '了', '和', '是', '在', '，', '。', '：', '（', '）', '-', '\n', ' ', '有', '与', '或', '您'])
 
-    def score_print(self, scores, flag, infos=None):
+    def score_print(self, origin_scores, scores, flag, infos=None):
 
         print(f'\n=================score:{flag}=====================')
-        print(f'{scores}')
+        print(f'origin_score: {origin_scores} -> {scores}')
 
         if infos is not None:
             pretty_json = json.dumps(infos, indent=2, ensure_ascii=False)
@@ -43,19 +43,20 @@ class MyReward:
 
     def F1_reward(self, completions, query, out, **kwargs):
 
-        scores = []
-        infos = []
+        origin_scores = []
+        truth = out[0]
+        truth_tokens = list(jieba.lcut(truth))
+        truth_tokens = [t for t in truth_tokens if t not in self.stop_words]
+
+        infos = {
+            'truth': truth,
+            'pred': []
+        }
 
         for idx, completion in enumerate(completions):
-
             pred = completion[0]['content']
-            truth = out[idx]
-
             pred_tokens = list(jieba.lcut(pred))
-            truth_tokens = list(jieba.lcut(truth))
-
             pred_tokens = [t for t in pred_tokens if t not in self.stop_words]
-            truth_tokens = [t for t in truth_tokens if t not in self.stop_words]
 
             common = list(set(pred_tokens) & set(truth_tokens))
             common_count = sum(min(pred_tokens.count(t), truth_tokens.count(t)) for t in common)
@@ -67,19 +68,24 @@ class MyReward:
                 recall = common_count / len(truth_tokens)
                 f1 = 2 * precision * recall / (precision + recall)
 
-            scores.append(f1)
-            infos.append({
+            origin_scores.append(f1)
+            infos['pred'].append({
                 "pred": pred,
                 # "pred_tokens": pred_tokens,
-                "truth": truth,
                 # "truth_tokens": truth_tokens,
                 # "common": common,
                 "common_count": common_count,
-                "f1": f1
+                # "f1": f1
             })
             
         # if query[0] == '我是浙江考生，选课物化，我分数482，排名192244，被录取的概率有多大？':
-        self.score_print(scores=scores, flag=f'F1 {query[0]}', infos=infos)
+        if max(origin_scores) < 0.7:
+            scores = [0.0 for _ in origin_scores]
+
+        else:
+            scores = origin_scores
+        
+        self.score_print(origin_scores=origin_scores, scores=scores, flag=f'F1 {query[0]}', infos=infos)
 
         return scores
 
