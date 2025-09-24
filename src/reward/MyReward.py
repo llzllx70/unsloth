@@ -79,11 +79,16 @@ class MyReward:
             })
             
         # if query[0] == '我是浙江考生，选课物化，我分数482，排名192244，被录取的概率有多大？':
+        """
+        从pretrain的基础上进行训练，不需要过滤， 因为起点比较低
         if max(origin_scores) < 0.7:
             scores = [0.0 for _ in origin_scores]
 
         else:
             scores = origin_scores
+        """
+
+        scores = origin_scores
         
         self.score_print(origin_scores=origin_scores, scores=scores, flag=f'F1 {query[0]}', infos=infos)
 
