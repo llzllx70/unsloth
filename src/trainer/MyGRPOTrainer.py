@@ -29,8 +29,8 @@ class MyGRPOTrainer(BaseTrainer):
         self.lora_rank = 32 # Larger rank = smarter, but slower
 
         self.model, self.tokenizer = FastLanguageModel.from_pretrained(
-            # model_name = sft_merged_model,
-            model_name = pretrain_merged_model,
+            model_name = sft_merged_model,
+            # model_name = pretrain_merged_model,
             max_seq_length = self.max_seq_length,
             load_in_4bit = False, # False for LoRA 16bit
             fast_inference = True, # Enable vLLM fast inference

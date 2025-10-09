@@ -3,6 +3,7 @@ import jieba
 import json
 from src.common.MyRe import MyRe
 from src.reward.kw import all_kw
+from src.reward.bge import Bge
 
 for w in all_kw:
     jieba.add_word(w)
@@ -19,6 +20,7 @@ class MyReward:
         self.re = MyRe()
 
         self.stop_words = set(['的', '了', '和', '是', '在', '，', '。', '：', '（', '）', '-', '\n', ' ', '有', '与', '或', '您'])
+        self.bge = Bge()
 
     def score_print(self, origin_scores, scores, flag, infos=None):
 
@@ -79,6 +81,37 @@ class MyReward:
             })
             
         # if query[0] == '我是浙江考生，选课物化，我分数482，排名192244，被录取的概率有多大？':
+        """
+        从pretrain的基础上进行训练，不需要过滤， 因为起点比较低
+        if max(origin_scores) < 0.7:
+            scores = [0.0 for _ in origin_scores]
+
+        else:
+            scores = origin_scores
+        """
+
+        scores = origin_scores
+        
+        self.score_print(origin_scores=origin_scores, scores=scores, flag=f'F1 {query[0]}', infos=infos)
+
+        return scores
+
+    def F1_bge(self, completions, query, out, **kwargs):
+
+        origin_scores = []
+        truth = out[0]
+        truth_tokens = list(jieba.lcut(truth))
+        truth_tokens = [t for t in truth_tokens if t not in self.stop_words]
+
+        ss = [completion[0]['content'] for completion in completions]
+
+        infos = {
+            'truth': truth,
+            'pred': ss
+        }
+
+        origin_scores = self.bge.scores(truth, ss)
+
         """
         从pretrain的基础上进行训练，不需要过滤， 因为起点比较低
         if max(origin_scores) < 0.7:
@@ -237,7 +270,8 @@ class MyReward:
         
         return [
             # self.start_with_reasoning_reward,
-            self.F1_reward,
+            # self.F1_reward,
+            self.F1_bge,
             # self.check_answer
             # self.format_score,
             # self.task_reward
